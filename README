@@ -1,0 +1,233 @@
+Introduction
+------------
+
+LeakTracer is a small tool I wrote when checking a C++ program for memory
+leaks. I couldn't get dmalloc to display what I wanted, and I just saw the
+__builtin_return_address gcc-extension mentioned.
+
+To use LeakTracer, run your program using the provided LeakCheck script. It
+uses the LD_PRELOAD feature to "overlay" some functions on top of your
+functions (no recompile needed). If your platform does not support LD_PRELOAD,
+you can add the LeakTracer.o object file to the objects in your Makefile and
+run your application. 
+
+LeakTracer uses gdb to print out the exact line where the memory was allocated
+and not freed - this of course means you have to free all dynamically
+allocated data. LeakTracer also overrides the global operator new and operator
+delete - this will give problems if you override them as well.
+
+LeakTracer traces only new/new[] and delete calls - it does not look at
+malloc/free/realloc.
+
+Here is some example output:
+
+Gathered 8 (8 unique) points of data.
+(gdb)
+Allocations: 1 / Size: 36
+0x80608e6 is in NullArcableInstance::NullArcableInstance(void) (Machine.cc:40).
+39      public:
+40          NullArcableInstance() : ArcableInstance(new NullArcable) {}
+
+Allocations: 1 / Size: 8
+0x8055b02 is in init_types(void) (Type.cc:119).
+118     void init_types() {
+119         Type::Integer = new IntegerType;
+
+Allocations: 1 / Size: 132 (new[])
+0x805f4ab is in Hashtable<NativeCallable, String, false, true>::Hashtable(unsigned int) (ea/h/Hashtable.h:15).
+14          Hashtable (uint _size = 32) : size(_size), count(0) {
+15              table = new List<E, own> [size];
+
+[...]
+
+Requirements
+------------
+
+You need Perl5 and gdb installed to run the leak-analyzer. You need gcc -- I
+currently use 2.95 but have used it with previous older versions without
+problems.
+
+
+You also need to run this on an architecture which supports
+__builtin_return_address arguments that are greater than 0 - there may be
+some problems on MIPS there. 
+
+So far this code has been tested under Linux 2.2, x86 system, Solaris and
+HP-UX.
+
+
+Installation
+------------
+
+Just type make. There is no install target; you should put LeakTracer
+some place you can remember.
+
+Since version 2.0, it is possible to preload the LeakTracer object on
+architectures that support LD_PRELOAD (this is at least Linux and probably
+others -- please report success/failure). This means it is much easier to use
+the program: you do not need to relink your program with LeakTracer.o.
+
+In case your platform does not support LD_PRELOAD, you can use LeakTracer in
+the old pre 2.0 way: add LeakTracer.o to your object files -- at the very end
+of them (also after -llibrary lines).
+
+In any case your application must also be compiled with debugging enabled
+(i.e. -g).
+
+Running with LeakTracer
+-----------------------
+
+If you are using the shared object, run the LeakCheck script. This script
+should stay in the directory where you install LeakCheck -- it will search for
+LeakTracer.so file there and load it. E.g.:
+
+~/src/LeakTracer/LeakCheck yourApplication
+
+(if you put LeakTracer in ~/src/LeakTracer/)
+
+Run your application as normal, performing tasks that you want to be traced
+for memory leaks. While the application runs, LeakTracer will write data about
+memory allocation to the file "leak.out" in the current directory. You can
+override the location of that file by setting the LEAKTRACE_FILE environment
+variable.
+
+If you cannot use LD_PRELOAD, just run your application as normal after
+relinking it. It will also produce a "leak.out" file when it finishes.
+
+
+Detectable errors
+-----------------
+
+LeakTracer is capable to detect the following problems with your program
+
+  1) memory which is allocated but not freed
+  2) (limited support for) overwritten memory at the end of the allocated
+     block  ( reason = 1 )
+  3) memory which is tried to be deleted but which is not allocated
+     (either because of a garbage pointer or twice deletion)
+     (reason = 2)
+  4) memory which is allocated with new[] but deleted with simple delete
+     and vice versa (reason = 4)
+
+For the last three problems, LeakTracer can abort() your program if you
+tell it so; the resulting core-dump allows to debug the problem. By default,
+only the overwrite memory condition results in an abort of the program
+because it is inherently critical. The two other conditions are not critical.
+You can influence what LeakTracer does with the environment variable
+   LT_ABORTREASON
+which you can set to some numeric value which is the result of the
+sum of the reasons you find in the parentesis in the enumeration above.
+To abort on any reason, for example, you would set LT_ABORTREASON to 7.
+
+
+Analyzing output
+----------------
+
+You should then run leak-analyze, since looking at the raw leak.out file will
+not help you much. To run leak-analyze, you need Perl as well as gdb
+installed (any version of gdb will do). For example:
+
+leak-analyze myprog leak.out
+
+You don't have to specify the leak.out filename if you just use the default
+one. leak-analyze will run gdb on the file, sending it a number of commands
+that will show the source lines with the memory leaks.
+
+leak-analyze should show you something like this:
+
+Gathered 2 (2 unique) points of data.
+
+#-- Alloc: Different allocation schemes
+alloc here :0x80485b7 is in main (test.cc:6).
+5
+6               int *wrong = new int[10];
+..free here :0x80485d9 is in main (test.cc:11).
+11              delete wrong;
+
+#-- Leak: Allocations: 1 / Size: 168 
+0x8048593 is in main (test.cc:3).
+2       int main() {
+3               int *array = new int [42] ;
+
+#-- Leak: Allocations: 1 / Size: 4 
+0x80485a5 is in main (test.cc:4).
+3               int *array = new int [42] ;
+4               int *foo = new int;
+
+
+This means that total of two allocations happened, in two different places.
+
+First a delete error is shown: you allocated some memory using new[] but you
+freed it using delete. leak-analyze will show where you allocated the memory and where you freed it.
+
+Afterwards each allocation is shown in turn. There was 1 allocation from this
+line of code (test.cc:3), and it was 168 bytes in size. Note that of the two
+lines of code shown, it's the bottom one that created the allocation.
+
+That's all there is to it - now you should find those memory leaks, fix them
+and rerun Leak tracer.
+
+Shared libraries and objects
+----------------------------
+
+If you want to analyze the leaks in shared libraries in your file, it may be
+necessary to make leak-analyze run your program and thus load the shared
+libraries before searching for addresses.
+
+To do that, run leak-analyze with the program name, leak name AND another
+argument which is where to set the breakpoint, e.g.:
+
+leak-analyze myprog leak.out main
+
+This will make leak-analyze tell gdb to set a breakpoint on "main" and then
+run the program. After the analysis is complete, the program will be killed.
+
+If you want to load some shared libraries, you can set a breakpoint on a
+different location, e.g. main.cc:42 if you know that once line 42 is reached,
+all shared objects have been loaded.
+
+If your program needs some command line arguments, supply them after "main".
+
+
+Licensing
+---------
+
+LeakTracer is public domain (i.e. do with it whatever you feel like).
+
+Credits
+-------
+
+Initial version of LeakTracer was written by Erwin Andreasen. Henner Zeller
+(H.Zeller@acm.org) contributed a rewrite of the code which
+introduced dynamic loading of LeakTracer and more.
+
+
+Revision history
+----------------
+
+February 21, 1999		v1.0 - only tested internally
+February 23, 1999		v1.1 - added operator new[] / delete[]
+February 23, 1999       	v1.2 - Oops, forgot to free() the memory..
+February 26, 1999		v1.3 - allow delete 0
+March 27, 1999			v1.4 - Allow %p format without leading 0x for non-GNU 
+                                       libc. Option to leak-analyze to run the program.
+July 21, 1999           	v1.5 - Fix for the above suggested by Alan Gonzalez
+August 21, 2000			v1.6 - use a destructor instead of 
+                                       __attribute__(destructor)
+November 19, 2000               v2.0 - Rewrite by Henner Zeller introduces LD_PRELOAD
+                                       and much more
+February 27, 2001               v2.1 - Further update by Henner: optional thread safety,
+                                       choose what should make LeakTracer abort(), better
+                                       tracing of delete on non-new'ed pointers
+March 2, 2001                   v2.2 - Another updated by Henner: hash table to increase
+                                       performance with many allocations
+June 13, 2001                   v2.3 - Made LT more resistant to being called before init
+                                       and after destruction
+August 28, 2003                 v2.4 - Improve MAGIC on platforms that don't allow unaligned
+                                       access
+                                       
+
+Authors: 	Erwin Andreasen <erwin@andreasen.org>
+		Henner Zeller <H.Zeller@acm.org>
+Homepage:	http://www.andreasen.org/LeakTracer/
+

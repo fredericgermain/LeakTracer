@@ -1,0 +1,107 @@
+#!/usr/bin/perl
+# Erwin S. Andreasen <erwin@andreasen.org>
+# Henner Zeller <H.Zeller@acm.org>
+#
+# Homepage: http://www.andreasen.org/LeakTracer/
+# This program is Public Domain
+use IO::Handle;
+
+die "You must supply at least one argument.\n" unless $#ARGV >= 0;
+
+$ExeFile = shift @ARGV;
+$LeaksFile = $#ARGV >= 0 ? shift @ARGV : "leak.out";
+open (LEAKS, $LeaksFile) or die "Could not open leaks data file $LeaksFile: $!";
+
+if ($#ARGV >= 0) {
+    $BreakOn = shift @ARGV;
+    # Rest in @ARGV are program arguments
+}
+
+$n = $u = 0;
+while (<LEAKS>) {
+    chop;
+    next if (m/^\s*#/);
+    #             1       2          3       4          5      6            7
+    #if (/^\s*L\s+(0x)?([0-9a-f]+)\s+(0x)?([0-9a-f]+)\s+(0x)?([0-9a-f]+)\s+(\d+)/) {
+    # Allocations, which have not been freed or deallocations which have not
+    # been allocated.
+    #              1      2           3
+    if (/^\s*L\s+(0x)?([0-9a-f]+)\s+(\d+)/) {
+        $addr="$2";  # ",$4,$6";
+        $u++ if not exists $Type{$addr};
+        $Count{$addr}++;
+	$Size{$addr} += $3; # $7;
+	$Type{$addr} = "Leak";
+        $n++;
+    }
+    elsif (/^\s*D\s+(0x)?([0-9a-f]+)/) {
+        $addr="$2";  # ",$4,$6";
+        $u++ if not exists $Type{$addr};
+        $Count{$addr}++;
+	$Type{$addr} = "delete on not allocated memory";
+        $n++;
+    }
+    # allocations/deallocations with other errornous conditions
+    #              1      2        3         4        5
+    elsif (/^\s*([SO])\s+(0x)?([0-9a-f]+)\s+(0x)?([0-9a-f]+)/) {
+	$addrs = "$3,$5,$1";
+	$AllocDealloc{$addrs} = ("$1" =~ m/S/) 
+	    ? "Different allocation schemes" 
+	    : "This Memory was overwritten";
+    }
+}
+
+print STDERR "Gathered $n ($u unique) points of data.\n";
+
+close (LEAKS);
+
+
+# Instead of using -batch, we just run things as usual. with -batch,
+# we quit on the first error, which we don't want.
+open (PIPE, "|gdb -q  $ExeFile") or die "Cannot start gdb";
+#open (PIPE, "|cat");
+
+# Change set listsize 2 to something else to show more lines
+print PIPE "set prompt\nset complaints 1000\nset height 0\n";
+
+# Optionally, run the program
+if (defined($BreakOn)) {
+    print PIPE "break $BreakOn\n";
+    print PIPE "run ", join(" ", @ARGV), " \n";
+}
+
+
+print PIPE "set listsize 2\n";
+foreach (sort keys %AllocDealloc) {
+    print PIPE "echo \\n#-- Alloc: $AllocDealloc{$_}\\nalloc here :\n";
+    @addrs = split(/,/,$_);
+    print PIPE "l *0x" . (shift @addrs) . "\necho ..free here :\n";
+    print PIPE "set listsize 1\n";
+    print PIPE "l *0x" . (shift @addrs) . "\n";
+}
+
+foreach (sort keys %Type) {
+    print PIPE "echo \\n#-- $Type{$_}: counted $Count{$_}x";
+    if ($Size{$_} > 0) {
+	print PIPE " / total Size: $Size{$_}";
+    }
+    print PIPE "\\n\n";
+    @addrs = split(/,/,$_);
+    print PIPE "set listsize 2\n";
+    print PIPE "l *0x" . (shift @addrs) . "\n";
+    #print PIPE "echo ..called from :\n";
+    #print PIPE "set listsize 1\n";
+    # gdb bails out, if it cannot find an address.
+    #print PIPE "l *0x" . (shift @addrs) . "\necho ..called from :\n";
+    #print PIPE "l *0x" . (shift @addrs) . "\n";
+}
+
+if (defined($BreakOn)) {
+    print PIPE "kill\n";
+}
+
+print PIPE "quit\n";
+PIPE->flush();
+wait();
+
+close (PIPE);
