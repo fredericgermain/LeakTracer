@@ -1,0 +1,20 @@
+Source: leaktracer
+Section: devel
+Priority: optional
+Maintainer: Yann Dirson <dirson@debian.org>
+Build-Depends: debhelper (>= 4), docbook, docbook-utils, dh-buildinfo
+Standards-Version: 3.6.2
+
+Package: leaktracer
+Architecture: any
+Depends: gdb, ${shlibs:Depends}, ${perl:Depends}
+Description: Simple and efficient memory-leak tracer for C++ programs
+ LeakTracer traces calls to new and delete, and reports
+ inconsistencies in the C++-level memory-management.
+ .
+ It has limitations (eg. when you override the new and delete
+ operators yourself), but is very easy to use (eg. compared to more
+ complete tools like mpatrol), traces the C++ level (unlike most other
+ tools), and gives pretty good results.
+ .
+ It uses gdb to display source-file information.

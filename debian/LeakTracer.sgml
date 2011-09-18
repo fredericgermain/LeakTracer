@@ -1,0 +1,115 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+
+<refentry>
+<![IGNORE[
+  <refentryinfo>
+
+    <!-- Please adjust the date whenever revising the manpage. -->
+    <date>June 7, 2003</date>
+
+    <address>
+      <email>dirson@debian.org</email>
+    </address>
+    <author>
+      <firstname>Yann</firstname>
+      <surname>Dirson</surname>
+    </author>
+    <copyright>
+      <year>2001</year>
+      <year>2003</year>
+      <holder>Yann Dirson</holder>
+    </copyright>
+  </refentryinfo>
+]]>
+
+  <refmeta>
+    <refentrytitle>LeakTracer</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>LeakTracer</refname>
+
+    <refpurpose>a memory-usage debugger for C++ programs</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>LeakCheck</command>
+      <arg req><replaceable>program</></arg>
+      <arg opt repeat><replaceable>program arguments</></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>leak-analyze</command>
+      <arg req><replaceable>program</></arg>
+      <arg opt><replaceable>leak.out</></arg>
+      <arg opt><replaceable>main</></arg>
+      <arg opt repeat><replaceable>program arguments</></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+
+    <para>This manual page documents briefly the <command>LeakCheck</>
+    and <command>leak-analyze</> commands.</para>
+
+    <para>This manual page was written for the
+    <productname>Debian</productname> distribution because the
+    original program does not have a manual page.  Instead, it has
+    documentation in the <acronym>HTML</acronym> format; see
+    below.</para>
+
+    <para><command>LeakCheck</> is a small script that executes a C++
+    program while logging informations about calls to
+    <function>new</> and <function>delete</> into a
+    <filename>leak.out</> file.</para>
+
+    <para><command>leak-analyze</> gives a human-readable report of
+    the contents of a <filename>leak.out</> file, by calling
+    <citerefentry ><refentrytitle >gdb</> <manvolnum>1</></> to
+    display the faulty lines.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+
+    <para>These programs accept no special options.  For an
+    explanation of the possible arguments to <command>leak-analyze</>,
+    see the full documentation.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+
+    <para>The official documentation in
+    <filename>/usr/share/doc/leaktracer/README.*</>, available both in
+    HTML and plain text.</para>
+
+    <para><citerefentry ><refentrytitle >gdb</> <manvolnum>1</></></para>
+  </refsect1>
+
+  <refsect1>
+    <title>Author</title>
+
+    <para>This manual page was written by Yann Dirson
+    <email>dirson@debian.org</email> for the
+    <productname>Debian</productname> system (but may be used by
+    others).  Permission is granted to copy, distribute and/or modify
+    this document under the terms of the <acronym>GNU</acronym> Free
+    Documentation License, Version 1.1, as published by the Free
+    Software Foundation, with no Invariant Sections, no Front-Cover
+    Texts and no Back-Cover Texts.</para>
+  </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:nil
+sgml-shorttag:t
+sgml-indent-step:2
+sgml-indent-data:t
+End:
+-->

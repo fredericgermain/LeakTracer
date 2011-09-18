@@ -1,0 +1,15 @@
+This package was debianized by Yann Dirson <dirson@debian.org> in
+April 2002.
+
+It was downloaded from http://www.andreasen.org/LeakTracer/
+
+Upstream Authors:
+
+Initial version of LeakTracer was written by Erwin Andreasen. Henner
+Zeller (foobar@to.com) contributed a rewrite of the code which
+introduced dynamic loading of LeakTracer and more.
+
+
+Copyright:
+
+LeakTracer is public domain (i.e. do with it whatever you feel like).

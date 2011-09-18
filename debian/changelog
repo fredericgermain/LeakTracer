@@ -1,0 +1,75 @@
+leaktracer (2.4-5) unstable; urgency=low
+
+  * Stop declaring obsolete task c-dev (Closes: #318940).
+  * Bumped Standards-Version to 3.6.2, no change.
+  * Bumped debhelper compat level to 4, no change.
+
+ -- Yann Dirson <dirson@debian.org>  Mon, 18 Jul 2005 23:16:06 +0200
+
+leaktracer (2.4-4) unstable; urgency=low
+
+  * Build with g++-4.0.
+
+ -- Yann Dirson <dirson@debian.org>  Tue,  5 Jul 2005 23:32:24 +0200
+
+leaktracer (2.4-3) unstable; urgency=low
+
+  * Removed XB-Task field from debian/control and use a parameter to
+    dh_gencontrol instead, since dpkg-gencontrol messes with the field's
+    case (Closes: #305754).
+  * Removed g++ from the build-deps, it is essential now.
+  * Added debian/watch file - mostly useless since upstream does not put
+    version in the tarball name.
+  * Bumped Standards-Version to 3.6.1, no change.
+
+ -- Yann Dirson <dirson@debian.org>  Tue, 26 Apr 2005 22:35:30 +0200
+
+leaktracer (2.4-2) unstable; urgency=low
+
+  * Fixed manpage SGML markup (CLoses: #223779).
+  * Extract manpage generation into its own rule.
+  * Prefixed Task: field with XB- in debian/control.
+
+ -- Yann Dirson <dirson@debian.org>  Fri,  9 Jan 2004 14:58:55 +0100
+
+leaktracer (2.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * Use dh-buildinfo.
+
+ -- Yann Dirson <dirson@debian.org>  Mon, 22 Sep 2003 14:55:04 +0200
+
+leaktracer (2.3-3) unstable; urgency=low
+
+  * s/info/html/ in manpage (Closes: #194284).
+  * Commented out refentryinfo in manpage, since that's not supported by
+    the converter.
+  * Be sure to remove auxiliary generated files from docbook2man on
+    debian/rules clean.  
+  * Rebuilt with g++ 3.3.
+  * Build with -g -O2 as per current policy, and support "noopt" flag
+    instead of "debug".
+  * Install the LD_PRELOAD object in a subdir of /usr/lib/, since that's
+    not a real full-fledged shared lib (lintian).
+  * Use debian/compat; build-deb on debhelper 3.4.4.
+  * Updated debian/rules copyright.
+  * Bumped Standards-Version to 3.5.10.
+
+ -- Yann Dirson <dirson@debian.org>  Sat,  7 Jun 2003 17:39:55 +0200
+
+leaktracer (2.3-2) unstable; urgency=low
+
+  * Rebuilt for the g++-3.2 transition.
+
+ -- Yann Dirson <dirson@debian.org>  Thu,  9 Jan 2003 10:11:10 +0100
+
+leaktracer (2.3-1) unstable; urgency=low
+
+  * Initial Release (Closes: #141937).
+  * Changed Makefile to ease CFLAGS tweeking.
+  * Added realclean: target to Makefile.
+  * Written a small manpage.  Format it with docbook-utils, as docbook-to-man
+    does a wrong job here.
+
+ -- Yann Dirson <dirson@debian.org>  Thu,  9 Apr 2002 21:31:44 +0200
+

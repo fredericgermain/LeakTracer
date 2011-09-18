@@ -1,0 +1,14 @@
+Document: leaktracer
+Title: LeakTracer Manual
+Author: Erwin Andreasen <erwin@andreasen.org>
+Abstract: This manual describes how LeakTracer can be used to
+ find memory leaks and other memory-management problems in
+ C++ programs.
+Section: Apps/Programming
+
+Format: text
+Files: /usr/share/doc/leaktracer/README.gz
+
+Format: HTML
+Index: /usr/share/doc/leaktracer/README.html
+Files: /usr/share/doc/leaktracer/README.html

@@ -1,0 +1,14 @@
+;; Object debian/
+;; SEMANTICDB Tags save file
+(semanticdb-project-database-file "debian/"
+  :tables (list 
+   (semanticdb-table "rules"
+    :major-mode 'makefile-mode
+    :tags 'nil
+    :file "rules"
+    )
+   )
+  :file "semantic.cache"
+  :semantic-tag-version "2.0beta3"
+  :semanticdb-version "2.0beta3"
+  )

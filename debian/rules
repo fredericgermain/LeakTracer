@@ -1,0 +1,85 @@
+#!/usr/bin/make -f
+# debian/rules for leaktrace
+# (c) 2001-2003 by Yann Dirson
+# based on sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+CFLAGS=-Wall -W -g
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+  NOOPT := 1
+else
+  NOOPT := 0
+endif
+
+build: build-stamp
+
+build-stamp: debian/LeakTracer.1
+	dh_testdir
+
+	$(MAKE) EXTRA_CXXFLAGS="${CFLAGS}" NOOPT="${NOOPT}"
+
+	touch build-stamp
+
+%.1: %.sgml
+	cd `dirname $<` && docbook2man  `basename $<`
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp debian/LeakTracer.1 debian/manpage.refs
+
+	-$(MAKE) clean
+
+	dh_prep
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs usr/bin usr/lib
+
+	$(MAKE) DESTDIR="debian/leaktracer" PREFIX="usr" install
+
+	mkdir -p debian/leaktracer/usr/share/man/man1/
+	install -m644 debian/LeakTracer.1 \
+		debian/leaktracer/usr/share/man/man1/
+	cd debian/leaktracer/usr/share/man/man1/ && \
+		ln -s LeakTracer.1 LeakCheck.1 && \
+		ln -s LeakTracer.1 leak-analyze.1
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs README*
+	dh_buildinfo
+#	dh_installexamples
+#	dh_installmenu
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installman
+#	dh_installinfo
+#	dh_undocumented
+	dh_installchangelogs 
+#	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs
+	dh_installdeb
+	dh_perl
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
