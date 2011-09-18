@@ -1,48 +1,42 @@
+#///////////////////////////////////////////////////////
+#
+# LeakTracer
+# Contribution to original project by Erwin S. Andreasen
+# site: http://www.andreasen.org/LeakTracer/
+#
+# Added by Michael Gopshtein, 2006
+# mgopshtein@gmail.com
+# 
+# Any comments/suggestions are welcome
+# 
+#///////////////////////////////////////////////////////
+
 CC = g++
 
-# Source files
-SRC := LeakTracer.cc
-
-# Comment out to disable thread safetly
-THREAD=-DTHREAD_SAVE -D_REENTRANT -D_THREAD_SAFE -pthread 
-
 # Common flags
-C_FLAGS = -g -pipe -Wall -W $(THREAD)
-O_FLAGS = $(C_FLAGS)
+C_FLAGS = -Wall -pthread -ggdb
 
-# Object files
-OBJ_DIR = .
-OBJ   := $(patsubst %.cc,$(OBJ_DIR)/%.o,$(SRC))
-SHOBJ := $(patsubst %.o,$(OBJ_DIR)/%.so,$(OBJ))
+# File names
+LTLIB = libleaktrace.a
+TESTAPP = testLeaktrace
 
-.PHONY: all clean tidy distrib test
+# Library
+all: $(LTLIB)
 
-all: $(OBJ) $(SHOBJ)
+$(LTLIB): AllocationHandlers.o MemoryTrace.o
+	ar cr $@ AllocationHandlers.o MemoryTrace.o
 
-clean:	tidy 
-	rm -f $(OBJ) leak.out
+%.o: %.cpp
+	$(CC) $(C_FLAGS) -c $(C_FLAGS) -o $@ $<
 
-tidy:
-	rm -f *~ *orig *bak *rej
+test: $(TESTAPP)
+	./$(TESTAPP)
+	./parse_leaktracer_out.pl testLeaktrace leaks.out
 
-tags:	$(SRC) $(INCL)
-	ctags $(SRC) $(INCL)
+$(TESTAPP): test.cc $(LTLIB)
+	$(CC) -o $(TESTAPP) test.cc $(C_FLAGS) -L. -lleaktrace
 
-distrib: clean all README.html
-	(cd .. && tar cvfz  /u/erwin/drylock/LeakTracer/LeakTracer.tar.gz -X LeakTracer/.tarexcl  LeakTracer/)
+clean:
+	rm -f *.o $(LTLIB) $(TESTAPP) *~ *.out
 
-$(OBJ_DIR)/%.o: %.cc
-	$(CC) -fPIC -c $(C_FLAGS) $< -o $@
 
-$(OBJ_DIR)/%.so : $(OBJ_DIR)/%.o
-	$(CC) $(O_FLAGS) -shared -o $@ $<
-
-README.html: README
-	/u/erwin/ed/mcl/util/htmlize.pl README
-
-test:
-	$(CC) $(C_FLAGS) test.cc -o test
-	./test
-	./LeakCheck ./test
-	./leak-analyze ./test
-#	./compare-test test.template test.result

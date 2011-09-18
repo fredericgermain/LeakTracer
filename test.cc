@@ -1,17 +1,59 @@
-// Small leaky test program
+////////////////////////////////////////////////////////
+//
+// LeakTracer
+// Contribution to original project by Erwin S. Andreasen
+// site: http://www.andreasen.org/LeakTracer/
+// 
+// Added by Michael Gopshtein, 2006
+// mgopshtein@gmail.com
+// 
+// Any comments/suggestions are welcome
+// 
+////////////////////////////////////////////////////////
 
-void foo() {
-    int *x = new int;
+
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include "MemoryTrace.hpp"
+
+
+char *doAlloc(unsigned int size);
+
+
+int main()
+{
+	// startup part of the program
+	// following allocation is not registered
+	char *lostAtStartup = doAlloc(128); strcpy(lostAtStartup, "Lost at startup");
+
+	// starting monitoring allocations
+	leaktracer::MemoryTrace::GetInstance().startMonitoringAllThreads();
+	char *memLeak = doAlloc(256); strcpy(memLeak, "This is a real memory leak");
+	char *notLeak = doAlloc(64); strcpy(notLeak, "This is NOT a memory leak");
+
+	// stop monitoring allocations, but do still
+	// monitor releases of the memory
+	leaktracer::MemoryTrace::GetInstance().stopMonitoringAllocations();
+	delete[] notLeak;
+	notLeak = doAlloc(32);
+
+	// stop all monitoring, print report
+	leaktracer::MemoryTrace::GetInstance().stopAllMonitoring();
+
+	std::ofstream oleaks;
+	oleaks.open("leaks.out", std::ios_base::out);
+	if (oleaks.is_open())
+		leaktracer::MemoryTrace::GetInstance().writeLeaks(oleaks);
+	else
+		std::cerr << "Failed to write to \"leaks.out\"\n";
+
+	return 0;
 }
 
-int main() {
-    int *z = new int[10];
-    char *q = new char[4];
-    q[4] = 'x';                 // MAGIC overrun
-    // Commenting out should make this abort
-    // delete q;
-    foo();
-    foo();
-    delete z;
-    delete z;   // delete value twice
+
+char *doAlloc(unsigned int size) {
+	return new char[size];
 }
+
+
