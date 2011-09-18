@@ -1,0 +1,79 @@
+#!/usr/bin/perl
+use IO::Handle;
+
+my $exe_name = shift (@ARGV);
+my $log_name = shift (@ARGV);
+
+if ($#ARGV >= 0) {
+    my $breakpoint = shift @ARGV;
+}
+
+if (!$exe_name || !$log_name) {
+   print "Usage: $0 <PROGRAM> <LEAKTRACER LEAKFILE> [BREAKPOINT]\n";
+   exit (1);
+}
+
+my %stacks;
+my %addresses;
+my $lines = 0;
+
+open (LEAKFILE, $log_name) || die("failed to read from \"$log_name\"");
+
+while (<LEAKFILE>) {
+   chomp;
+   my $line = $_;
+   if ($line =~ /^leak, size=(\d*), stack=([\w ]*), data=.*/) {
+      $lines ++;
+
+      my $id = $2;
+      $stacks{$id}{COUNTER} ++;
+      $stacks{$id}{SIZE} += $1;
+
+      my @ptrs = split(/ /, $id);
+      foreach $ptr (@ptrs) {
+         $addresses{$ptr} = "unknown";
+      }
+   }
+}
+close (LEAKFILE);
+printf "found $lines leak(s)\n";
+if ($lines == 0) { exit 0; }
+
+
+# Instead of using -batch, we just run things as usual. with -batch,
+# we quit on the first error, which we don't want.
+open (PIPE, "|gdb -q") or die "Cannot start gdb";
+#open (PIPE, "|cat");
+
+# Change set listsize 2 to something else to show more lines
+print PIPE "set prompt\nset complaints 1000\nset height 0\n";
+
+print PIPE "file $exe_name\n";
+# Optionally, run the program
+if (defined($breakpoint)) {
+    print PIPE "break $breakpoint\n";
+    print PIPE "run ", join(" ", @ARGV), " \n";
+}
+
+# printing allocations
+print PIPE "set listsize 1\n";
+print PIPE "set print symbol-filename on\n";
+
+while (($stack, $info) = each(%stacks)) {
+   print PIPE "echo ".$info->{SIZE}." bytes lost in ".$info->{COUNTER}." blocks, from following call stack:\\n\n";
+   @stack = split(/ /, $stack);
+   foreach $addr (@stack) {
+    print PIPE "l *" . ($addr) . "\n";
+   }
+    print PIPE "echo \\n\n";
+}
+
+if (defined($breakpoint)) {
+    print PIPE "kill\n";
+}
+
+print PIPE "quit\n";
+PIPE->flush();
+wait();
+
+close (PIPE);

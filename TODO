@@ -1,0 +1,25 @@
+What's left to do
+
+* basic heap smashing detection using a marker system (though other library might
+do some better job than us by design)
+
+* Integrating better frontend for leak analyzis.
+  **Most interresting would be to find a way to be independant from gdb to lookup leak address in library depedency.
+  **Graphical tools?
+
+* Cleaning MemoryTrace.hpp to export to program, renaming it ot LeakTracer.hpp ??
+
+* Extending leak detection to other kind of leak :
+  ** file descriptors
+  ** mapped area
+  ** ...
+
+* Making it less os-dependent (now quite linked to a Unix OS with a gcc toolchain)
+  ** Rewriting Makefile based on autoconf to have plenty of compilation flags to play with
+  ** Having a client/server kind of architecture to start/stop/write monitoring (instead of Unix signal)
+
+* Plug new/delete operator to the dlopen RTLD_NEXT symbol
+
+* Tests
+  We need a lot more tests.  Lets keep an ever growing list here.
+  ** Write tests that test behaviour with different environment variable settings

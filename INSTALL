@@ -1,0 +1,40 @@
+Prerequisites
+=============
+
+LeakTracer does not requires the specific packages.
+It needs C++ support from your toolchain
+It needs that your toolchain support some evolve functions like pthread_key_create...
+leak-analyze needs perl
+
+
+Simple install procedure
+========================
+
+Global options for Makefile
+* OBJDIR= where you want the build tree, default build/{machine}/{gccversion}
+* CROSS_COMPILE= prefix of the gcc to use in case of cross compilation
+* or GXX= g++ to use
+* DEBUG= compilation in debug mode
+
+make or make all
+   Compiles dynamic and static library which exposes all LearTracer functionality
+
+make test
+   1) Builds test application which creates some memory leaks
+   2) Runs the test application
+   3) Parses LeakTracer log to show information in readable format
+
+make clean
+   Deletes all binary files and logs created by "make" or "make test"
+
+make install
+   Install the files suitable for distribution
+   Options:
+   * PREFIX=  prefix where you want the files install, probably /usr is what you want
+   * DESTDIR= destination rootfs, mainly for chroot or cross compilation install
+
+The Details
+===========
+
+
+
