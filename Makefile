@@ -35,7 +35,7 @@ $(OBJ_DIR)/%.o: %.cc
 	$(CC) -fPIC -c $(C_FLAGS) $< -o $@
 
 $(OBJ_DIR)/%.so : $(OBJ_DIR)/%.o
-	$(CC) $(O_FLAGS) -shared -o $@ $<
+	$(CC) $(O_FLAGS) -ldl -shared -o $@ $<
 
 README.html: README
 	/u/erwin/ed/mcl/util/htmlize.pl README

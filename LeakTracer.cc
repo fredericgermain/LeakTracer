@@ -8,6 +8,14 @@
  * This program is Public Domain
  */
 
+#define TRACE_MALLOC 			// enable tracing of malloc/free/calloc/realloc
+#define TRACE_FREE
+#define TRACE_CALLOC
+#define TRACE_REALLOC
+
+//#define TRACE(arg) fprintf arg
+#define TRACE(arg)
+
 #ifdef THREAD_SAVE
 #define _THREAD_SAVE
 #include <pthread.h>
@@ -23,15 +31,25 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#include <dlfcn.h>
+#include <assert.h>
 
+/**
+ * dynamic call interfaces to memory allocation functions in libc.so
+ */
+static void* (*lt_malloc)(size_t size);
+static void  (*lt_free)(void* ptr);
+static void* (*lt_realloc)(void *ptr, size_t size);
+static void* (*lt_calloc)(size_t nmemb, size_t size);
 
 /*
  * underlying allocation, de-allocation used within 
  * this tool
  */
-#define LT_MALLOC  malloc
-#define LT_FREE    free
-#define LT_REALLOC realloc
+#define LT_MALLOC  (*lt_malloc)
+#define LT_FREE    (*lt_free)
+#define LT_REALLOC (*lt_realloc)
+#define LT_CALLOC  (*lt_calloc)
 
 /*
  * prime number for the address lookup hash table.
@@ -57,7 +75,11 @@
  *   <ftp://ftp.perens.com/pub/ElectricFence/>
  */
 #define MAGIC "\xAA\xBB\xCC\xDD"
+#ifdef MAGIC
 #define MAGIC_SIZE (sizeof(MAGIC)-1)
+#else
+#define MAGIC_SIZE 0
+#endif
 
 /**
  * on 'new', initialize the memory with this value.
@@ -87,11 +109,12 @@
 #define INITIALSIZE 32768
 
 static class LeakTracer {
+public:
 	struct Leak {
 		const void *addr;
 		size_t      size;
 		const void *allocAddr;
-		bool        type;
+		bool        type;	// true == normal, false == []
 		int         nextBucket;
 	};
 	
@@ -103,14 +126,15 @@ static class LeakTracer {
 	unsigned long totalAllocations; // total number of allocations. stats.
 	unsigned int  abortOn;  // resons to abort program (see abortReason_t)
 
+public:
 	/**
 	 * Have we been initialized yet?  We depend on this being
 	 * false before constructor has been called!  
 	 */
-	bool initialized;	
+	bool initialized;
 	bool destroyed;		// Has our destructor been called?
 
-
+private:
 	FILE *report;       // filedescriptor to write to
 
 	/**
@@ -136,6 +160,7 @@ static class LeakTracer {
 
 public:
 	LeakTracer() {
+		TRACE((stderr,"LeakTracer\n"));
 		initialize();
 	}
 	
@@ -144,8 +169,7 @@ public:
 		if (initialized)
 			return;
 
-		//		fprintf(stderr, "LeakTracer::initialize()\n");
-		initialized = true;
+		TRACE((stderr, "LeakTracer::initialize()\n"));
 		newCount = 0;
 		leaksCount = 0;
 		firstFreeSpot = 1; // index '0' is special
@@ -157,6 +181,49 @@ public:
 		leaks = 0;
 		leakHash = 0;
 
+		if (!lt_calloc)
+		{
+			TRACE((stderr, "initialize: dlsym(lt_calloc)\n"));
+			lt_calloc = (void*(*)(size_t, size_t))dlsym(RTLD_NEXT, "calloc");
+			TRACE((stderr, "initialize: lt_calloc=%p\n", lt_calloc));
+			if (!lt_calloc) {
+				fprintf(stderr, "LeakTracer: could not resolve 'calloc' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+
+		if (!lt_malloc)
+		{
+			lt_malloc = (void*(*)(size_t))dlsym(RTLD_NEXT, "malloc");
+			TRACE((stderr, "initialize: lt_malloc=%p\n", lt_malloc));
+			if (!lt_malloc) {
+				fprintf(stderr, "LeakTracer: could not resolve 'malloc' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+
+		if (!lt_free)
+		{
+			lt_free = (void(*)(void*))dlsym(RTLD_NEXT, "free");
+			TRACE((stderr, "initialize: lt_free=%p\n", lt_free));
+			if (!lt_free) {
+				fprintf(stderr, "LeakTracer: could not resolve 'free' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+
+		if (!lt_realloc)
+		{
+			lt_realloc = (void*(*)(void*,size_t))dlsym(RTLD_NEXT, "realloc");
+			TRACE((stderr, "initialize: lt_realloc=%p\n", lt_realloc));
+			if (!lt_realloc) {
+				fprintf(stderr, "LeakTracer: could not resolve 'realloc' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+
+		// initialize trace file
+		
 		char uniqFilename[256];
 		const char *filename = getenv("LEAKTRACE_FILE") ? : "leak.out";
 		struct stat dummy;
@@ -187,7 +254,6 @@ public:
 		
 		time_t t = time(NULL);
 		fprintf (report, "# starting %s", ctime(&t));
-
 		leakHash = (int*) LT_MALLOC(SOME_PRIME * sizeof(int));
 		memset ((void*) leakHash, 0x00, SOME_PRIME * sizeof(int));
 
@@ -232,13 +298,17 @@ public:
 		fprintf(report, "# not thread save; if you use threads, recompile with -DTHREAD_SAVE\n");
 #endif
 		fflush(report);
+
+		TRACE((stderr, "LeakTracer::initialized\n"));
+		initialized = true;
 	}
 	
 	/*
 	 * the workhorses:
 	 */
-	void *registerAlloc(size_t size, bool type);
-	void  registerFree (void *p, bool type);
+	void *registerAlloc(size_t size, bool type, unsigned caller_stack);
+	void  registerFree (void *p, bool type, unsigned caller_stack);
+	void *registerRealloc (void *p, size_t size, bool type);
 
 	/**
 	 * write a hexdump of the given area.
@@ -251,7 +321,7 @@ public:
 	void progAbort(abortReason_t reason) {
 		if (abortOn & reason) {
 			fprintf(report, "# abort; DUMP of current state\n");
-                        fprintf(stderr, "LeakTracer aborting program\n");
+                        fprintf(stderr, "LeakTracer aborting program due to reason %d\n", reason);
 			writeLeakReport();
 			fclose(report);
 			abort();
@@ -266,7 +336,7 @@ public:
 	void writeLeakReport();
 
 	~LeakTracer() {
-	    //		fprintf(stderr, "LeakTracer::destroy()\n");
+		TRACE((stderr, "~LeakTracer\n"));
 		time_t t = time(NULL);
 		fprintf (report, "# finished %s", ctime(&t));
 		writeLeakReport();
@@ -275,22 +345,23 @@ public:
 #ifdef THREAD_SAVE
 		pthread_mutex_destroy(&mutex);
 #endif
+		TRACE((stderr, "~LeakTracer: destroyed"));
 		destroyed = true;
 	}
 } leakTracer;
 
-void* LeakTracer::registerAlloc (size_t size, bool type) {
-	initialize();
+void* LeakTracer::registerAlloc (size_t size, bool type, unsigned caller_stack) {
+	TRACE((stderr, "LeakTracer::registerAlloc(%d, %d, %d)\n", size, type, caller_stack));
 
-	//	fprintf(stderr, "LeakTracer::registerAlloc()\n");
+	initialize();
 
 	if (destroyed) {
 		fprintf(stderr, "Oops, registerAlloc called after destruction of LeakTracer (size=%d)\n", size);
 		return LT_MALLOC(size);
 	}
 
-
 	void *p = LT_MALLOC(size + MAGIC_SIZE);
+
 	// Need to call the new-handler
 	if (!p) {
 		fprintf(report, "LeakTracer malloc %m\n");
@@ -326,12 +397,13 @@ void* LeakTracer::registerAlloc (size_t size, bool type) {
 				leaks[i].addr = p;
 				leaks[i].size = size;
 				leaks[i].type = type;
-				leaks[i].allocAddr=__builtin_return_address(1);
+				leaks[i].allocAddr= (caller_stack == 1) ? __builtin_return_address(1) :  __builtin_return_address(2),
 				firstFreeSpot = i+1;
 				// allow to lookup our index fast.
 				int *hashPos = &leakHash[ ADDR_HASH(p) ];
 				leaks[i].nextBucket = *hashPos;
 				*hashPos = i;
+				TRACE((stderr, "registerAlloc returning %p\n", p));
 #ifdef THREAD_SAVE
 				pthread_mutex_unlock(&mutex);
 #endif
@@ -375,17 +447,109 @@ void LeakTracer::hexdump(const unsigned char* area, int size) {
 	fprintf(report, "\n");
 }
 
-void LeakTracer::registerFree (void *p, bool type) {
+void LeakTracer::registerFree (void *p, bool type, unsigned caller_stack) {
+	TRACE((stderr, "LeakTracer::registerFree(%p, %d, %d)\n", p, type, caller_stack));
+
 	initialize();
 
 	if (p == NULL)
 		return;
 
 	if (destroyed) {
-		fprintf(stderr, "Oops, allocation destruction of LeakTracer (p=%p)\n", p);
-		return;
+		fprintf(stderr, "Oops, registerFree called after destruction of LeakTracer (p=%p)\n", p);
+		return LT_FREE(p);
 	}
 
+#ifdef THREAD_SAVE
+	pthread_mutex_lock(&mutex);
+#endif
+	if (leaks) {
+
+		int *lastPointer = &leakHash[ ADDR_HASH(p) ];
+		int i = *lastPointer;
+		
+		while (i != 0 && leaks[i].addr != p) {
+			lastPointer = &leaks[i].nextBucket;
+			i = *lastPointer;
+		}
+		
+		if (leaks[i].addr == p) {
+			*lastPointer = leaks[i].nextBucket; // detach.
+			newCount--;
+			leaks[i].addr = NULL;
+			currentAllocated -= leaks[i].size;
+			if (i < firstFreeSpot)
+				firstFreeSpot = i;
+			
+			if (leaks[i].type != type) {
+				fprintf(report, 
+					"S %10p %10p  # new%s but delete%s "
+					"; size %d\n",
+					leaks[i].allocAddr,
+					(caller_stack == 1) ? __builtin_return_address(1) :  __builtin_return_address(2),
+					((!type) ? "[]" : " normal"),
+					((type) ? "[]" : " normal"),
+					leaks[i].size);
+				
+				progAbort( NEW_DELETE_MISMATCH );
+			}
+#ifdef MAGIC
+			if (memcmp((char*)p + leaks[i].size, MAGIC, MAGIC_SIZE)) {
+				fprintf(report, "O memAddr: %10p memSize: %d allocAddr: %10p freeAddr: %10p "
+					"# memory overwritten beyond allocated"
+					" %d bytes\n",
+					p, leaks[i].size,
+					leaks[i].allocAddr,
+					(caller_stack == 1) ? __builtin_return_address(1) :  __builtin_return_address(2),
+					leaks[i].size);
+				fprintf(report, "# %d byte beyond area:\n",
+					MAGIC_SIZE);
+				hexdump((unsigned char*)p+leaks[i].size,
+					MAGIC_SIZE);
+				progAbort( OVERWRITE_MEMORY );
+			}
+#endif
+			
+#ifdef THREAD_SAVE
+#  ifdef MEMCLEAN
+			int allocationSize = leaks[i].size;
+#  endif
+			pthread_mutex_unlock(&mutex);
+#else
+#define                 allocationSize leaks[i].size
+#endif
+
+#ifdef MEMCLEAN
+			// set it to some garbage value.
+			memset((unsigned char*)p, MEMCLEAN, allocationSize + MAGIC_SIZE);
+#endif
+			return LT_FREE(p);
+		}
+	}
+#ifdef THREAD_SAVE
+	pthread_mutex_unlock(&mutex);
+#endif
+	fprintf(report, "D %10p             # delete non alloc or twice pointer %10p\n", 
+		(caller_stack == 1) ? __builtin_return_address(1) :  __builtin_return_address(2), p);
+	progAbort( DELETE_NONEXISTENT );
+}
+
+void* LeakTracer::registerRealloc (void* p, size_t size, bool type) {
+	TRACE((stderr, "LeakTracer::registerRealloc(%p, %d, %d)\n", p, size, type));
+
+	initialize();
+
+	if (destroyed) {
+		fprintf(stderr, "Oops, registerRealloc called after destruction of LeakTracer (size=%d, p=%p)\n", size, p);
+		return LT_REALLOC(p,size);
+	}
+
+	if (!p)
+		return registerAlloc(size, false, 2);
+
+	void* new_p = NULL;
+	int  old_size = -1;
+	
 #ifdef THREAD_SAVE
 	pthread_mutex_lock(&mutex);
 #endif
@@ -396,68 +560,29 @@ void LeakTracer::registerFree (void *p, bool type) {
 		lastPointer = &leaks[i].nextBucket;
 		i = *lastPointer;
 	}
-
-	if (leaks[i].addr == p) {
-		*lastPointer = leaks[i].nextBucket; // detach.
-		newCount--;
-		leaks[i].addr = NULL;
-		currentAllocated -= leaks[i].size;
-		if (i < firstFreeSpot)
-			firstFreeSpot = i;
-
-		if (leaks[i].type != type) {
-			fprintf(report, 
-				"S %10p %10p  # new%s but delete%s "
-				"; size %d\n",
-				leaks[i].allocAddr,
-				__builtin_return_address(1),
-				((!type) ? "[]" : " normal"),
-				((type) ? "[]" : " normal"),
-				leaks[i].size);
-			
-			progAbort( NEW_DELETE_MISMATCH );
-		}
-#ifdef MAGIC
-		if (memcmp((char*)p + leaks[i].size, MAGIC, MAGIC_SIZE)) {
-			fprintf(report, "O %10p %10p  "
-				"# memory overwritten beyond allocated"
-				" %d bytes\n",
-				leaks[i].allocAddr,
-				__builtin_return_address(1),
-				leaks[i].size);
-			fprintf(report, "# %d byte beyond area:\n",
-				MAGIC_SIZE);
-			hexdump((unsigned char*)p+leaks[i].size,
-				MAGIC_SIZE);
-			progAbort( OVERWRITE_MEMORY );
-		}
-#endif
-
-#ifdef THREAD_SAVE
-#  ifdef MEMCLEAN
-		int allocationSize = leaks[i].size;
-#  endif
-		pthread_mutex_unlock(&mutex);
-#else
-#define             allocationSize leaks[i].size
-#endif
-
-#ifdef MEMCLEAN
-		// set it to some garbage value.
-		memset((unsigned char*)p, MEMCLEAN, allocationSize + MAGIC_SIZE);
-#endif
-		LT_FREE(p);
-		return;
-	}
-
+	if (leaks[i].addr == p)
+		old_size = leaks[i].size;
 #ifdef THREAD_SAVE
 	pthread_mutex_unlock(&mutex);
 #endif
-	fprintf(report, "D %10p             # delete non alloc or twice pointer %10p\n", 
-		__builtin_return_address(1), p);
-	progAbort( DELETE_NONEXISTENT );
+	if (old_size >= 0) {
+		if ((int) size > old_size) {
+			new_p = registerAlloc(size, type, 2);
+			if (new_p) {
+				memcpy(new_p, p, old_size);
+				registerFree(p, type, 2);
+			}
+		}
+		else
+			new_p = p;
+	}
+	else {
+		fprintf(report, "D %10p             # realloc non alloc or twice pointer %10p\n", 
+			__builtin_return_address(1), p);
+		progAbort( DELETE_NONEXISTENT );
+	}
+	return new_p;
 }
-
 
 void LeakTracer::writeLeakReport() {
 	initialize();
@@ -488,24 +613,148 @@ void LeakTracer::writeLeakReport() {
 /** -- The actual new/delete operators -- **/
 
 void* operator new(size_t size) {
-	return leakTracer.registerAlloc(size,false);
+	TRACE((stderr, "new\n"));
+	return leakTracer.registerAlloc(size,false,1);
 }
 
 
 void* operator new[] (size_t size) {
-	return leakTracer.registerAlloc(size,true);
+	TRACE((stderr, "new[]\n"));
+	return leakTracer.registerAlloc(size,true,1);
 }
 
 
 void operator delete (void *p) {
-	leakTracer.registerFree(p,false);
+	TRACE((stderr, "delete(%p)\n",p));
+	leakTracer.registerFree(p,false,1);
 }
 
 
 void operator delete[] (void *p) {
-	leakTracer.registerFree(p,true);
+	TRACE((stderr, "delete[](%p)\n",p));
+	leakTracer.registerFree(p,true,1);
 }
 
+/** -- libc memory operators -- **/
+void *malloc(size_t size)
+{
+	TRACE((stderr, "malloc(%d)\n",size));
+#ifdef TRACE_MALLOC	
+	if (leakTracer.initialized)
+		return leakTracer.registerAlloc(size,false,1);
+	else
+#endif
+	{
+		if (!lt_malloc)
+		{
+			lt_malloc = (void*(*)(size_t))dlsym(RTLD_NEXT, "malloc");
+			TRACE((stderr, "malloc: lt_malloc=%p\n", lt_malloc));
+			if (!lt_malloc) {
+				fprintf(stderr, "LeakTracer: could not resolve 'malloc' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+		if (lt_malloc)
+			return LT_MALLOC(size);
+		else
+		{
+			TRACE((stderr, "assert(lt_malloc) failed\n"));
+			return NULL;
+		}
+	}
+}
+
+void  free(void* ptr)
+{
+	TRACE((stderr, "free(%p)\n", ptr));
+#ifdef TRACE_FREE
+	if (leakTracer.initialized)
+		leakTracer.registerFree(ptr,false,1);
+	else
+#endif
+	{
+		if (!lt_free)
+		{
+			lt_free = (void(*)(void*))dlsym(RTLD_NEXT, "free");
+			TRACE((stderr, "free: lt_free=%p\n", lt_free));
+			if (!lt_free) {
+				fprintf(stderr, "LeakTracer: could not resolve 'free' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+
+		if (lt_free)
+			return LT_FREE(ptr);
+		else
+		{
+			TRACE((stderr, "assert(lt_free) failed\n"));
+			return;
+		}
+		
+	}
+
+}
+void* realloc(void *ptr, size_t size)
+{
+	TRACE((stderr, "realloc(%p,%d)\n", ptr, size));
+#ifdef TRACE_REALLOC
+	if (leakTracer.initialized)
+		return leakTracer.registerRealloc(ptr,size,false);
+	else
+#endif
+	{
+		if (!lt_realloc)
+		{
+			lt_realloc = (void*(*)(void*,size_t))dlsym(RTLD_NEXT, "realloc");
+			TRACE((stderr, "realloc: lt_realloc=%p\n", lt_realloc));
+			if (!lt_realloc) {
+				fprintf(stderr, "LeakTracer: could not resolve 'realloc' in 'libc.so': %s\n", dlerror());
+				exit(1);
+			}
+		}
+		if (lt_realloc)
+			return LT_REALLOC(ptr, size);
+		else
+		{
+			TRACE((stderr, "assert(lt_realloc) failed\n"));
+			return NULL;
+		}
+	}
+}
+
+void* calloc(size_t nmemb, size_t size)
+{
+	TRACE((stderr, "calloc(%d,%d)\n",nmemb, size));
+#ifdef TRACE_CALLOC
+	if (leakTracer.initialized)
+	{
+		size_t total = nmemb * size;
+		void * ptr = leakTracer.registerAlloc(total,false,1);
+		if (ptr)
+		{
+			TRACE((stderr,"memset(%p, 0, %d)\n", ptr, total));
+			memset (ptr, 0, total);
+		}
+		return ptr;
+	}
+	else
+#endif
+	{
+		if (lt_calloc)
+			return LT_CALLOC(nmemb, size);
+		else
+		{
+
+			// The problem is that malloc or calloc call dlsym, which in turn
+			// (through _dlerror_run) call calloc and thus end up in endless
+			// recursion. Fortunately, in _dlerror_run nothing bad happens if
+			// calloc returns NULL,	because dlsym(_dlerror_run() will use
+			// a static buffer 
+			TRACE((stderr, "assert(lt_calloc) failed\n"));
+			return NULL;
+		}
+	}
+}
 /* Emacs: 
  * Local variables:
  * c-basic-offset: 8
