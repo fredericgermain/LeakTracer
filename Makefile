@@ -13,20 +13,20 @@
 TEST_LINK_STATIC = 0
 TEST_HARD_LINK = 1
 
-ifneq ($(CROSS_COMPILE), "")
+ifneq ($(CROSS_COMPILE),)
 CXX=$(CROSS_COMPILE)g++
 else
-ifeq ($(CXX), "")
+ifeq ($(CXX),)
 CXX ?= g++
 endif
 endif
-SRCDIR ?= $(PWD)
-OBJDIR ?= $(PWD)/build/$(shell $(CXX) -dumpmachine)/$(shell $(CXX) -dumpversion)
-ifneq ($(PREFIX), "")
-PREFIX := "/usr"
+SRCDIR ?= $(CURDIR)
+OBJDIR ?= $(CURDIR)/build/$(shell $(CXX) -dumpmachine)/$(shell $(CXX) -dumpversion)
+ifeq ($(PREFIX),)
+PREFIX := /usr
 endif
 
-ifeq ($(DEBUG), 1)
+ifeq ($(DEBUG),1)
 NOOPT := 1
 endif
 
@@ -34,7 +34,7 @@ LIBLEAKTRACERPATH := libleaktracer
 
 # Common flags
 CXXFLAGS = -Wall -pthread
-ifeq ($(NOOPT), 1)
+ifeq ($(NOOPT),1)
 # with -O0, functions are not inlined, so it's harder to get the backtrace on some architecture
 # but you can use it if you want to debug leaktracer (if some could find the right optim option to pass to gcc to
 # use with O0, it would be nice !)
@@ -101,12 +101,12 @@ $(OBJDIR)/%.o: %.cpp $(HEADERS)
 
 
 TESTRUNENV := LEAKTRACER_NOBANNER=1
-ifeq ($(TEST_LINK_STATIC), 1)
+ifeq ($(TEST_LINK_STATIC),1)
 TESTLINKDEP := $(LTLIB)
 TESTLINKARGS := -L$(OBJDIR) $(LTLIB)
 TESTRUNENV += LD_LIBRARY_PATH=$(OBJDIR) 
 else
-ifeq ($(TEST_HARD_LINK), 1)
+ifeq ($(TEST_HARD_LINK),1)
 TESTLINKDEP := $(LTLIBSO)
 TESTLINKARGS := -L$(OBJDIR) -lleaktracer
 TESTRUNENV += LD_LIBRARY_PATH=$(OBJDIR) 
@@ -118,7 +118,7 @@ endif
 endif
 
 runtests: $(TESTSBIN)
-ifeq ($(CROSS_COMPILE), "")
+ifeq ($(CROSS_COMPILE),)
 	@echo "Run tests not available when cross compiling for $(CROSS_COMPILE)"
 else
 	@[ -d $(OBJDIR)/tests ] || mkdir -p $(OBJDIR)/tests
@@ -138,12 +138,12 @@ clean:
 	rm -f $(SHOBJS) $(LTLIBSO) $(OBJS) $(LTLIB) $(TESTSBIN) *~ *.out
 
 install:
-	install -d $(DESTDIR)/$(PREFIX)/include
-	install -d $(DESTDIR)/$(PREFIX)/lib
-	install -d $(DESTDIR)/$(PREFIX)/bin
-	install -d $(DESTDIR)/$(PREFIX)/share/doc/leaktracer
-	install -m 660 $(LIBLEAKTRACERPATH)/include/* $(DESTDIR)/$(PREFIX)/include
-	install -m 770 $(LTLIBSO) $(DESTDIR)/$(PREFIX)/lib
-	install -m 770 helpers/* $(DESTDIR)/$(PREFIX)/bin
-	install -m 660 $(LTLIB) $(DESTDIR)/$(PREFIX)/lib
-	install -m 660 README $(DESTDIR)/$(PREFIX)/share/doc/leaktracer
+	install -d $(DESTDIR)$(PREFIX)/include
+	install -d $(DESTDIR)$(PREFIX)/lib
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -d $(DESTDIR)$(PREFIX)/share/doc/leaktracer
+	install -m 664 $(LIBLEAKTRACERPATH)/include/* $(DESTDIR)$(PREFIX)/include
+	install -m 775 $(LTLIBSO) $(DESTDIR)$(PREFIX)/lib
+	install -m 775 helpers/* $(DESTDIR)$(PREFIX)/bin
+	install -m 664 $(LTLIB) $(DESTDIR)$(PREFIX)/lib
+	install -m 664 README $(DESTDIR)$(PREFIX)/share/doc/leaktracer
