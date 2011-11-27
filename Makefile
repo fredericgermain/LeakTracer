@@ -48,7 +48,7 @@ endif
 # some architecture generate a lot more instuction than on x86 (mips, arm...), this make the functions not inlined
 # make inline-limit big to force inline
 CXXFLAGS += -finline-limit=10000
-CPP_FLAGS += -I$(LIBLEAKTRACERPATH)/include -I$(LIBLEAKTRACERPATH)/src
+CPPFLAGS += -I$(LIBLEAKTRACERPATH)/include -I$(LIBLEAKTRACERPATH)/src
 DYNLIB_FLAGS=-fpic -DSHARED -Wl,-z,defs
 
 CXXFLAGS += $(EXTRA_CXXFLAGS)
@@ -76,7 +76,7 @@ VPATH := $(LIBLEAKTRACERPATH)/src
 # Library
 all: $(LTLIB) $(LTLIBSO)
 
-VPATH := $(LIBLEAKTRACERPATH)/src tests/
+VPATH := $(LIBLEAKTRACERPATH)/src
 $(LTLIB): $(OBJS)
 	ar rcs $(LTLIB) $(OBJS)
 
@@ -85,19 +85,19 @@ $(LTLIBSO): $(SHOBJS)
 
 $(OBJDIR)/%.os: %.c $(HEADERS)
 	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
-	$(CXX) $(CPP_FLAGS) $(CXXFLAGS) $(DYNLIB_FLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DYNLIB_FLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o: %.c $(HEADERS)
 	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
-	$(CXX) $(CPP_FLAGS) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.os: %.cpp $(HEADERS)
 	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
-	$(CXX) $(CPP_FLAGS) $(CXXFLAGS) $(DYNLIB_FLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DYNLIB_FLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o: %.cpp $(HEADERS)
 	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
-	$(CXX) $(CPP_FLAGS) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 
 TESTRUNENV := LEAKTRACER_NOBANNER=1
@@ -118,7 +118,7 @@ endif
 endif
 
 runtests: $(TESTSBIN)
-ifeq ($(CROSS_COMPILE),)
+ifneq ($(CROSS_COMPILE),)
 	@echo "Run tests not available when cross compiling for $(CROSS_COMPILE)"
 else
 	@[ -d $(OBJDIR)/tests ] || mkdir -p $(OBJDIR)/tests
@@ -130,8 +130,7 @@ endif
 
 tests: $(TESTSBIN)
 
-
-$(OBJDIR)/%.bin: %.cc $(TESTLINKDEP) $(HEADERS)
+$(OBJDIR)/%.bin: tests/%.cc $(TESTLINKDEP) $(HEADERS)
 	$(CXX) -o $@ $< -g2 -I$(LIBLEAKTRACERPATH)/include $(CXXFLAGS) -O0 $(TESTLINKARGS) -ldl -lpthread
 
 clean:
