@@ -83,13 +83,16 @@ LEAKTRACER_AUTO_REPORTFILENAME - Equivalent to LEAKTRACER_ONSTART_STARTALLTHREAD
 
 
 Exemple:
-LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_AUTO_REPORTFILENAME=leak.out /bin/ls
+LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_AUTO_REPORTFILENAME=leaks.out /bin/ls
 
 
-LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_ONSIG_STARTALLTHREAD=USR1 LEAKTRACER_ONSIG_REPORT=USR2 LEAKTRACER_ONSIG_REPORTFILENAME=leak.out /bin/ls -Rl /
-killall -USR1 ls
+LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_ONSIG_STARTALLTHREAD=USR1 LEAKTRACER_ONSIG_REPORT=USR2 LEAKTRACER_ONSIG_REPORTFILENAME=leaks.out top
+killall -USR1 top
 ...
-killall -USR2 ls
+killall -USR2 top 
+
+Sometimes, SIGUSR1 and SIGUSR2 are used. You can use RT signals, which are generally not used :
+LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_ONSIG_STARTALLTHREAD=35 LEAKTRACER_ONSIG_REPORT=36 LEAKTRACER_ONSIG_REPORTFILENAME=leaks.out top
 
 
 Fine grained control of memory allocation
@@ -125,20 +128,32 @@ it won't give you the information.
 Analyzing output
 ================
 
-You should then run leak-analyze, since looking at the raw leak.out file will
+You should then run leak-analyze, since looking at the raw leaks.out file will
 not help you much. You need perl to run it.
 Two versions of lead-analyze are provided:
 * one is using gdb to find the line of the leak in your source code. This is the best way so far.
 * one is using addr2line. To problem with is method is that it won't find the line in the dependent library
 
 
+Help developping Leaktracer
+=========================
+You can use the debug mode to track problem in LeakTracer
+To do that, build in debug mode :
+> make DEBUG=1 clean all
+> gdb /bin/ls
+In gdb
+(gdb) set environment LD_PRELOAD build/x86_64-linux-gnu/4.6.1/libleaktracer.so
+(gdb) set environment LEAKTRACER_AUTO_REPORTFILENAME leaks.out
+(gdb) run
+...
+
 Note about implementation
 =========================
 
 * FG: I tried to first use LTS variable instead of pthread_key, but it looks like I was having a problem with them
 on a old uclibc problem.
-* On x86_64, gcc 4.5.2, it looks like there is a crash in __builtin_frame_address(i) if i > 1. You should define
-ALLOCATION_STACK_DEPTH to 1.
+* On x86_64, gcc 4.5.2, or other platform, it looks like there is a crash in __builtin_frame_address(i) if i > 1. You should define
+ALLOCATION_STACK_DEPTH to 1, or define USE_BACKTRACE to use backtrace() function.
 
 
 Project history
