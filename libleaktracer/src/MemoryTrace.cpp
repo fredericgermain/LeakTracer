@@ -181,7 +181,7 @@ MemoryTrace::init_all()
 		sigact.sa_sigaction = sigactionHandler;
 		sigemptyset(&sigact.sa_mask);
 		sigact.sa_flags = SA_SIGINFO;
-		sigNumber = signalNumberFromString(getenv("LEAKTRACER_SIGSTART"));
+		sigNumber = signalNumberFromString(getenv("LEAKTRACER_ONSIG_STARTALLTHREAD"));
 		__sigStartAllThread = sigNumber;
 		sigaction(sigNumber, &sigact, NULL);
 		TRACE((stderr, "LeakTracer: registered signal %d SIGSTART for tid %d\n", sigNumber, (pid_t) syscall (SYS_gettid)));
@@ -192,18 +192,18 @@ MemoryTrace::init_all()
 		sigact.sa_sigaction = sigactionHandler;
 		sigemptyset(&sigact.sa_mask);
 		sigact.sa_flags = SA_SIGINFO;
-		sigNumber = signalNumberFromString(getenv("LEAKTRACER_SIGSTOP"));
+		sigNumber = signalNumberFromString(getenv("LEAKTRACER_ONSIG_STOPALLTHREAD"));
 		__sigStopAllThread = sigNumber;
 		sigaction(sigNumber, &sigact, NULL);
 		TRACE((stderr, "LeakTracer: registered signal %d SIGSTOP for tid %d\n", sigNumber, (pid_t) syscall (SYS_gettid)));
 	}
 
-	if (getenv("LEAKTRACER_ONSIG_REPORTFILENAME"))
+	if (getenv("LEAKTRACER_ONSIG_REPORTFILENAME") && getenv("LEAKTRACER_ONSIG_REPORT"))
 	{
 		sigact.sa_sigaction = sigactionHandler;
 		sigemptyset(&sigact.sa_mask);
 		sigact.sa_flags = SA_SIGINFO;
-		sigNumber = signalNumberFromString(getenv("LEAKTRACER_SIGREPORT"));
+		sigNumber = signalNumberFromString(getenv("LEAKTRACER_ONSIG_REPORT"));
 		__sigReport = sigNumber;
 		sigaction(sigNumber, &sigact, NULL);
 		TRACE((stderr, "LeakTracer: registered signal %d SIGREPORT for tid %d\n", sigNumber, (pid_t) syscall (SYS_gettid)));
@@ -216,6 +216,11 @@ MemoryTrace::init_all()
 	{
 		leaktracer::MemoryTrace::GetInstance().startMonitoringAllThreads();
 	}
+#ifdef USE_BACKTRACE
+	// we call backtrace here, because there is some init on its first call
+	void *bt;
+	backtrace(&bt, 1);
+#endif
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
 }
 

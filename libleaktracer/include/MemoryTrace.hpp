@@ -19,6 +19,10 @@
 #include <string.h>
 #include <iostream>
 #include <list>
+#ifdef USE_BACKTRACE
+#include <execinfo.h>
+#endif
+
 
 #include "Mutex.hpp"
 #include "MutexLock.hpp"
@@ -304,9 +308,12 @@ inline void MemoryTrace::stopAllMonitoring(void)
 // frames
 inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 {
-	void *pFrame;
 	unsigned int iIndex = 0;
 
+#ifdef USE_BACKTRACE
+	iIndex = backtrace(arr, ALLOCATION_STACK_DEPTH);
+#else
+	void *pFrame;
 	// NOTE: we can't use "for" loop, __builtin_* functions
 	// require the number to be known at compile time
 	arr[iIndex++] = (                  (pFrame = __builtin_frame_address(0)) != NULL) ? __builtin_return_address(0) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
@@ -319,7 +326,7 @@ inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(7)) != NULL) ? __builtin_return_address(7) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
 	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(8)) != NULL) ? __builtin_return_address(8) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
 	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(9)) != NULL) ? __builtin_return_address(9) : NULL; 
-
+#endif
 	// fill remaining spaces
 	for (; iIndex < ALLOCATION_STACK_DEPTH; iIndex++)
 		arr[iIndex] = NULL;
