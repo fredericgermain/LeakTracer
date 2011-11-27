@@ -49,6 +49,14 @@ endif
 # make inline-limit big to force inline
 CXXFLAGS += -finline-limit=10000
 CPPFLAGS += -I$(LIBLEAKTRACERPATH)/include -I$(LIBLEAKTRACERPATH)/src
+# on some archi, __builtin_return_address with idx > 1 fails. we use glibc backtrace() function instead
+# ( we could also use -DALLOCATION_STACK_DEPTH=1)
+ifeq ($(shell $(CXX) -dumpmachine),x86_64-linux-gnu) # ubuntu x64
+CPPFLAGS += -DUSE_BACKTRACE
+endif
+ifeq ($(shell $(CXX) -dumpmachine),i586-suse-linux)
+CPPFLAGS += -DUSE_BACKTRACE
+endif
 DYNLIB_FLAGS=-fpic -DSHARED -Wl,-z,defs
 
 CXXFLAGS += $(EXTRA_CXXFLAGS)
