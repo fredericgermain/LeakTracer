@@ -66,7 +66,11 @@ void MemoryTrace::sigactionHandler(int sigNumber, siginfo_t *siginfo, void *arg)
 	}
 	if (sigNumber == __sigReport)
 	{
-		const char* reportFilename = "leaks.out";
+		const char* reportFilename;
+                if (getenv("LEAKTRACER_ONSIG_REPORTFILENAME") == NULL)
+                	reportFilename = "leaks.out";
+		else
+			reportFilename = getenv("LEAKTRACER_ONSIG_REPORTFILENAME");
   		TRACE((stderr, "MemoryTracer: signal %d received, writing report to %s\n", sigNumber, reportFilename));
 		leaktracer::MemoryTrace::GetInstance().writeLeaksToFile(reportFilename);
 	}
@@ -198,7 +202,7 @@ MemoryTrace::init_all()
 		TRACE((stderr, "LeakTracer: registered signal %d SIGSTOP for tid %d\n", sigNumber, (pid_t) syscall (SYS_gettid)));
 	}
 
-	if (getenv("LEAKTRACER_ONSIG_REPORTFILENAME") && getenv("LEAKTRACER_ONSIG_REPORT"))
+	if (getenv("LEAKTRACER_ONSIG_REPORT"))
 	{
 		sigact.sa_sigaction = sigactionHandler;
 		sigemptyset(&sigact.sa_mask);
