@@ -142,9 +142,9 @@ To do that, build in debug mode :
 > make DEBUG=1 clean all
 > gdb /bin/ls
 In gdb
-(gdb) set environment LD_PRELOAD build/x86_64-linux-gnu/4.6.1/libleaktracer.so
-(gdb) set environment LEAKTRACER_AUTO_REPORTFILENAME leaks.out
-(gdb) run
+set environment LD_PRELOAD /usr/lib/libleaktracer.so
+set environment LEAKTRACER_AUTO_REPORTFILENAME leaks.out
+run
 ...
 
 Note about implementation
