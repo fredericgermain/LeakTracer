@@ -3,9 +3,10 @@ use IO::Handle;
 
 my $exe_name = shift (@ARGV);
 my $log_name = shift (@ARGV);
+my $breakpoint;
 
 if ($#ARGV >= 0) {
-    my $breakpoint = shift @ARGV;
+   $breakpoint = shift @ARGV;
 }
 
 if (!$exe_name || !$log_name) {
@@ -37,7 +38,6 @@ while (<LEAKFILE>) {
 }
 close (LEAKFILE);
 printf "found $lines leak(s)\n";
-if ($lines == 0) { exit 0; }
 
 
 # Instead of using -batch, we just run things as usual. with -batch,
@@ -49,6 +49,9 @@ open (PIPE, "|gdb -q") or die "Cannot start gdb";
 print PIPE "set prompt\nset complaints 1000\nset height 0\n";
 
 print PIPE "file $exe_name\n";
+
+print PIPE "set environment LD_PRELOAD /usr/lib/libleaktracer.so\n";
+
 # Optionally, run the program
 if (defined($breakpoint)) {
     print PIPE "break $breakpoint\n";
@@ -59,10 +62,13 @@ if (defined($breakpoint)) {
 print PIPE "set listsize 1\n";
 print PIPE "set print symbol-filename on\n";
 
+#print PIPE "info sharedlibrary\n";
+
 while (($stack, $info) = each(%stacks)) {
    print PIPE "echo ".$info->{SIZE}." bytes lost in ".$info->{COUNTER}." blocks, from following call stack:\\n\n";
    @stack = split(/ /, $stack);
    foreach $addr (@stack) {
+    print PIPE "info symbol " . ($addr) . "\n";
     print PIPE "l *" . ($addr) . "\n";
    }
     print PIPE "echo \\n\n";
