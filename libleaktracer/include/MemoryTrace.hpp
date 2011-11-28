@@ -309,9 +309,10 @@ inline void MemoryTrace::stopAllMonitoring(void)
 inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 {
 	unsigned int iIndex = 0;
-
 #ifdef USE_BACKTRACE
-	iIndex = backtrace(arr, ALLOCATION_STACK_DEPTH);
+	void* arrtmp[ALLOCATION_STACK_DEPTH+1];
+	iIndex = backtrace(arrtmp, ALLOCATION_STACK_DEPTH + 1) - 1;
+	memcpy(arr, &arrtmp[1], iIndex*sizeof(void*));
 #else
 	void *pFrame;
 	// NOTE: we can't use "for" loop, __builtin_* functions
