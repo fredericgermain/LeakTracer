@@ -10,7 +10,7 @@ if ($#ARGV >= 0) {
 }
 
 if (!$exe_name || !$log_name) {
-   print "Usage: $0 <PROGRAM> <LEAKTRACER LEAKFILE> [BREAKPOINT]\n";
+   print "Usage: $0 <PROGRAM|PID> <LEAKTRACER LEAKFILE> [BREAKPOINT]\n";
    exit (1);
 }
 
@@ -48,7 +48,13 @@ open (PIPE, "|gdb -q") or die "Cannot start gdb";
 # Change set listsize 2 to something else to show more lines
 print PIPE "set prompt\nset complaints 1000\nset height 0\n";
 
-print PIPE "file $exe_name\n";
+if ($exe_name == int($exe_name)) {
+    print PIPE "attach $exe_name\n";
+}
+else
+{
+    print PIPE "file $exe_name\n";
+}
 
 print PIPE "set environment LD_PRELOAD /usr/lib/libleaktracer.so\n";
 
@@ -74,7 +80,10 @@ while (($stack, $info) = each(%stacks)) {
     print PIPE "echo \\n\n";
 }
 
-if (defined($breakpoint)) {
+if ($exe_name == int($exe_name)) {
+    print PIPE "detach\n";
+}
+elsif (defined($breakpoint)) {
     print PIPE "kill\n";
 }
 
