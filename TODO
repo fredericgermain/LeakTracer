@@ -1,5 +1,7 @@
 What's left to do
 
+* dynamic ALLOCATION_STACK_DEPTH based on an environment variable
+
 * basic heap smashing detection using a marker system (though other library might
 do some better job than us by design)
 
