@@ -305,7 +305,6 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 	__allocations.beginIteration();
 	while (__allocations.getNextPair(&info, &p)) {
 		out << "leak, ";
-		out << "size=" << info->size << ", ";
 
 		out << "stack=";
 		for (unsigned int i = 0; i < ALLOCATION_STACK_DEPTH; i++) {
@@ -315,6 +314,8 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 			out << info->allocStack[i];
 		}
 		out << ", ";
+
+		out << "size=" << info->size << ", ";
 
 		out << "data=";
 		const char *data = reinterpret_cast<const char *>(p);
