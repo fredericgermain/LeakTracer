@@ -48,7 +48,7 @@ open (PIPE, "|gdb -q") or die "Cannot start gdb";
 # Change set listsize 2 to something else to show more lines
 print PIPE "set prompt\nset complaints 1000\nset height 0\n";
 
-if ($exe_name == int($exe_name)) {
+if ($exe_name eq int($exe_name)) {
     print PIPE "attach $exe_name\n";
 }
 else
@@ -80,7 +80,7 @@ while (($stack, $info) = each(%stacks)) {
     print PIPE "echo \\n\n";
 }
 
-if ($exe_name == int($exe_name)) {
+if ($exe_name eq int($exe_name)) {
     print PIPE "detach\n";
 }
 elsif (defined($breakpoint)) {
