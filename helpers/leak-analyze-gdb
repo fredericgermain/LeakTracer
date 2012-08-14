@@ -23,12 +23,12 @@ open (LEAKFILE, $log_name) || die("failed to read from \"$log_name\"");
 while (<LEAKFILE>) {
    chomp;
    my $line = $_;
-   if ($line =~ /^leak, size=(\d*), stack=([\w ]*), data=.*/) {
+   if ($line =~ /^leak, stack=([\w ]*), size=(\d*), data=.*/) {
       $lines ++;
 
-      my $id = $2;
+      my $id = $1;
       $stacks{$id}{COUNTER} ++;
-      $stacks{$id}{SIZE} += $1;
+      $stacks{$id}{SIZE} += $2;
 
       my @ptrs = split(/ /, $id);
       foreach $ptr (@ptrs) {
