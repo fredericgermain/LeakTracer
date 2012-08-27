@@ -16,6 +16,7 @@
 #include "MemoryTrace.hpp"
 #include <ctype.h>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 
@@ -304,8 +305,9 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 	void *p;
 	__allocations.beginIteration();
 	while (__allocations.getNextPair(&info, &p)) {
+                double d = info->timestamp.tv_sec + (((double)info->timestamp.tv_nsec)/1000000000);
 		out << "leak, ";
-
+		out << "time="  << std::fixed << std::left << std::setprecision(6) << d << " "; // setw(16) ?
 		out << "stack=";
 		for (unsigned int i = 0; i < ALLOCATION_STACK_DEPTH; i++) {
 			if (info->allocStack[i] == NULL) break;

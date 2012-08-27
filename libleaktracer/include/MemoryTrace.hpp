@@ -14,6 +14,7 @@
 #ifndef __MEMORY_TRACE_h_included__
 #define __MEMORY_TRACE_h_included__
 
+#include <time.h>
 #include <pthread.h>
 #include <signal.h>
 #include <string.h>
@@ -180,10 +181,12 @@ private:
 	// per - allocation info
 	typedef struct _allocation_info_struct {
 		size_t size;
+		struct timespec timestamp;
 		void * allocStack[ALLOCATION_STACK_DEPTH];
 		bool isArray;
 	} allocation_info_t;
 	inline void storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH]);
+	inline void storeTimestamp(struct timespec &tm);
 
 	typedef TMapMemoryInfo<allocation_info_t> memory_allocations_info_t;
 	memory_allocations_info_t __allocations;
@@ -344,6 +347,7 @@ inline void MemoryTrace::registerAllocation(void *p, size_t size, bool is_array)
 			info->size = size;
 			info->isArray = is_array;
 			storeAllocationStack(info->allocStack);
+			storeTimestamp(info->timestamp);
 		}
 	}
 
@@ -365,6 +369,7 @@ inline void MemoryTrace::registerReallocation(void *p, size_t size, bool is_arra
 			info->size = size;
 			info->isArray = is_array;
 			storeAllocationStack(info->allocStack);
+                        storeTimestamp(info->timestamp);
 		}
 	}
 
@@ -393,6 +398,11 @@ inline void MemoryTrace::registerRelease(void *p, bool is_array)
 	}
 }
 
+//storetimestamp function
+inline void MemoryTrace::storeTimestamp(struct timespec &timestamp)
+{
+  clock_gettime(CLOCK_MONOTONIC, &timestamp);
+}
 
 
 }  // end namespace

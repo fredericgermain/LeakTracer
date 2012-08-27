@@ -55,6 +55,8 @@ CPPFLAGS += -I$(LIBLEAKTRACERPATH)/include -I$(LIBLEAKTRACERPATH)/src
 # uclibc target might need to turn this off...
 CPPFLAGS += -DUSE_BACKTRACE
 DYNLIB_FLAGS=-fpic -DSHARED -Wl,-z,defs
+# timestamp support
+LD_FLAGS=-lrt
 
 CXXFLAGS += $(EXTRA_CXXFLAGS)
 
