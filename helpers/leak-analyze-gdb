@@ -23,12 +23,13 @@ open (LEAKFILE, $log_name) || die("failed to read from \"$log_name\"");
 while (<LEAKFILE>) {
    chomp;
    my $line = $_;
-   if ($line =~ /^leak, size=(\d*), stack=([\w ]*), data=.*/) {
+   if ($line =~ /^leak, time=([\d.]*), stack=([\w ]*), size=(\d*), data=.*/) {
       $lines ++;
 
       my $id = $2;
       $stacks{$id}{COUNTER} ++;
-      $stacks{$id}{SIZE} += $1;
+      $stacks{$id}{TIME} = $1;
+      $stacks{$id}{SIZE} += $3;
 
       my @ptrs = split(/ /, $id);
       foreach $ptr (@ptrs) {
@@ -48,7 +49,7 @@ open (PIPE, "|gdb -q") or die "Cannot start gdb";
 # Change set listsize 2 to something else to show more lines
 print PIPE "set prompt\nset complaints 1000\nset height 0\n";
 
-if ($exe_name == int($exe_name)) {
+if ($exe_name eq int($exe_name)) {
     print PIPE "attach $exe_name\n";
 }
 else
@@ -71,7 +72,7 @@ print PIPE "set print symbol-filename on\n";
 #print PIPE "info sharedlibrary\n";
 
 while (($stack, $info) = each(%stacks)) {
-   print PIPE "echo ".$info->{SIZE}." bytes lost in ".$info->{COUNTER}." blocks, from following call stack:\\n\n";
+   print PIPE "echo ".$info->{SIZE}." bytes lost in ".$info->{COUNTER}." blocks (one of them allocated at ".$info->{TIME}."), from following call stack:\\n\n";
    @stack = split(/ /, $stack);
    foreach $addr (@stack) {
     print PIPE "info symbol " . ($addr) . "\n";
@@ -80,7 +81,7 @@ while (($stack, $info) = each(%stacks)) {
     print PIPE "echo \\n\n";
 }
 
-if ($exe_name == int($exe_name)) {
+if ($exe_name eq int($exe_name)) {
     print PIPE "detach\n";
 }
 elsif (defined($breakpoint)) {
