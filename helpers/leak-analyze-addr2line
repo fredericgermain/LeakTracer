@@ -22,12 +22,13 @@ open (LEAKFILE, $log_name) || die("failed to read from \"$log_name\"");
 while (<LEAKFILE>) {
    chomp;
    my $line = $_;
-   if ($line =~ /^leak, stack=([\w ]*), size=(\d*), data=.*/) {
+   if ($line =~ /^leak, time=([\d.]*) stack=([\w ]*), size=(\d*), data=.*/) {
       $lines ++;
 
-      my $id = $1;
+      my $id = $2;
       $stacks{$id}{COUNTER} ++;
-      $stacks{$id}{SIZE} += $2;
+      $stacks{$id}{TIME} = $1;
+      $stacks{$id}{SIZE} += $3;
 
       my @ptrs = split(/ /, $id);
       foreach $ptr (@ptrs) {
@@ -55,7 +56,7 @@ close (ADDRLIST);
 
 # printing allocations
 while (($stack, $info) = each(%stacks)) {
-   print $info->{SIZE}." bytes lost in ".$info->{COUNTER}." blocks, from following call stack:\n";
+   print $info->{SIZE}." bytes lost in ".$info->{COUNTER}." blocks (one of them allocated at ".$info->{TIME}."), from following call stack:\n";
    @stack = split(/ /, $stack);
    foreach $addr (@stack) { print "\t".$addresses{$addr}."\n"; }
 }
