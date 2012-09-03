@@ -22,7 +22,7 @@ open (LEAKFILE, $log_name) || die("failed to read from \"$log_name\"");
 while (<LEAKFILE>) {
    chomp;
    my $line = $_;
-   if ($line =~ /^leak, time=([\d.]*) stack=([\w ]*), size=(\d*), data=.*/) {
+   if ($line =~ /^leak, time=([\d.]*), stack=([\w ]*), size=(\d*), data=.*/) {
       $lines ++;
 
       my $id = $2;
