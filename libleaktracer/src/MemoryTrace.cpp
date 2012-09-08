@@ -357,7 +357,7 @@ void MemoryTrace::writeLeaksToFile(const char* reportFilename)
 	}
 	else
 	{
-		std::cerr << "Failed to write to \"leaks.out\"\n";
+		std::cerr << "Failed to write to \"" << reportFilename << "\"\n";
 	}
 	InternalMonitoringDisablerThreadDown();
 }
