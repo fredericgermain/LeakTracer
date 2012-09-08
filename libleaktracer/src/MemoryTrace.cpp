@@ -3,12 +3,12 @@
 // LeakTracer
 // Contribution to original project by Erwin S. Andreasen
 // site: http://www.andreasen.org/LeakTracer/
-// 
+//
 // Added by Michael Gopshtein, 2006
 // mgopshtein@gmail.com
-// 
+//
 // Any comments/suggestions are welcome
-// 
+//
 ////////////////////////////////////////////////////////
 
 #include <sys/syscall.h>
@@ -46,7 +46,7 @@ int MemoryTrace::__sigReport = 0;
 
 
 MemoryTrace::MemoryTrace(void) :
-		__monitoringAllThreads(false), __monitoringReleases(false)
+	__monitoringAllThreads(false), __monitoringReleases(false)
 {
 	pthread_key_create(&__thread_options_key, CleanUpThreadData);
 }
@@ -57,7 +57,7 @@ void MemoryTrace::sigactionHandler(int sigNumber, siginfo_t *siginfo, void *arg)
 	(void)arg;
 	if (sigNumber == __sigStartAllThread)
 	{
-  		TRACE((stderr, "MemoryTracer: signal %d received, starting monitoring\n", sigNumber));
+		TRACE((stderr, "MemoryTracer: signal %d received, starting monitoring\n", sigNumber));
 		leaktracer::MemoryTrace::GetInstance().startMonitoringAllThreads();
 	}
 	if (sigNumber == __sigStopAllThread)
@@ -68,11 +68,11 @@ void MemoryTrace::sigactionHandler(int sigNumber, siginfo_t *siginfo, void *arg)
 	if (sigNumber == __sigReport)
 	{
 		const char* reportFilename;
-                if (getenv("LEAKTRACER_ONSIG_REPORTFILENAME") == NULL)
-                	reportFilename = "leaks.out";
+		if (getenv("LEAKTRACER_ONSIG_REPORTFILENAME") == NULL)
+			reportFilename = "leaks.out";
 		else
 			reportFilename = getenv("LEAKTRACER_ONSIG_REPORTFILENAME");
-  		TRACE((stderr, "MemoryTracer: signal %d received, writing report to %s\n", sigNumber, reportFilename));
+		TRACE((stderr, "MemoryTracer: signal %d received, writing report to %s\n", sigNumber, reportFilename));
 		leaktracer::MemoryTrace::GetInstance().writeLeaksToFile(reportFilename);
 	}
 }
@@ -129,7 +129,8 @@ MemoryTrace::init_all()
 			}
 		}
 	}
-		if (!lt_malloc)
+
+	if (!lt_malloc)
 	{
 		if (__libc_malloc)
 		{
@@ -146,6 +147,7 @@ MemoryTrace::init_all()
 			}
 		}
 	}
+
 	if (!lt_free)
 	{
 		if (__libc_free)
@@ -163,6 +165,7 @@ MemoryTrace::init_all()
 			}
 		}
 	}
+
 	if (!lt_realloc)
 	{
 		if (__libc_realloc)
@@ -235,15 +238,14 @@ int MemoryTrace::Setup(void)
 
 	if (!AllMonitoringIsDisabled())
 		pthread_once(&MemoryTrace::_thread_init_all_once, MemoryTrace::init_all);
-			
-	return 0;
 
+	return 0;
 }
 
 void MemoryTrace::MemoryTraceOnInit(void)
 {
 	//TRACE((stderr, "LeakTracer: MemoryTrace::MemoryTraceOnInit\n"));
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 }
 
 
@@ -261,7 +263,7 @@ void MemoryTrace::MemoryTraceOnExit(void)
 		TRACE((stderr, "LeakTracer: writing leak report in %s\n", reportName));
 		leaktracer::MemoryTrace::GetInstance().writeLeaksToFile(reportName);
 	}
-   
+
 }
 
 MemoryTrace::~MemoryTrace(void)
@@ -321,7 +323,7 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 
 		out << "data=";
 		const char *data = reinterpret_cast<const char *>(p);
-		for (unsigned int i = 0; i < PRINTED_DATA_BUFFER_SIZE && i < info->size; i++) 
+		for (unsigned int i = 0; i < PRINTED_DATA_BUFFER_SIZE && i < info->size; i++)
 			out << (isprint(data[i]) ? data[i] : '.');
 		out << '\n';
 	}
@@ -368,5 +370,3 @@ void MemoryTrace::clearAllocationsInfo(void)
 
 
 }  // end namespace
-
-

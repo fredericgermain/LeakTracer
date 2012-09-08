@@ -3,12 +3,12 @@
 // LeakTracer
 // Contribution to original project by Erwin S. Andreasen
 // site: http://www.andreasen.org/LeakTracer/
-// 
+//
 // Added by Michael Gopshtein, 2006
 // mgopshtein@gmail.com
-// 
+//
 // Any comments/suggestions are welcome
-// 
+//
 ////////////////////////////////////////////////////////
 
 
