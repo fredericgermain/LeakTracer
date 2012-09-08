@@ -10,17 +10,17 @@ General Information
 ===================
 
 This library is designed to be a nice complement of valgrind and libduma (ex efence) to
-detect leak memory. It simply overide C/C++ allocation function (new, malloc, ...) to
-keep then in a simple list that could be analysed later. The effective allocation is 
-still done  by the underlying libc.
-It can be used when valgrind is not ported on your platform, when libduma is using to
+detect leak memory. It simply override C/C++ allocation function (new, malloc, ...) to
+keep then in a simple list that could be analysed later. The effective allocation is
+still done by the underlying libc.
+It can be used when valgrind is not ported on your platform, when libduma is using too
 much virtual memory (embedded system), or when you're really interested in tracking only
-meory leaks.
+memory leaks.
 You may start/stop/dump monitoring allocation from the first allocation, when the program
-receive a signal (ex SIGUSR1), or when you explicitly call a LeakTracer function.
+receive a signal (for ex. SIGUSR1), or when you explicitly call a LeakTracer function.
 
 
-The following documentation is insired by DUMA, which is quite similar to use.
+The following documentation is inspired by DUMA, which is quite similar to use.
 
 
 Installation
@@ -39,7 +39,7 @@ first of your link command. You should see leaktracer.so as the first NEEDED ent
 the Dynamic Section when you do a "objdump -p" of your program (through this check is
 really dependent of your binary loader)
 * use the LD_PRELOAD environment variable to be sure it is loaded before any other library.
-you don't need so change your program using this method. You can then customize LeakTracer 
+you don't need so change your program using this method. You can then customize LeakTracer
 behaviour using Environment variables.
 
 
@@ -57,39 +57,39 @@ it's important to know them.
 
 LEAKTRACER_NOBANNER - Prevent LeakTracer to announce itself on stderr when it load.
 
-LEAKTRACER_ONSIG_STARTALLTHREAD - If set, install a signal handler that will start allocation 
+LEAKTRACER_ONSIG_STARTALLTHREAD - If set, install a signal handler that will start allocation
   monitoring on the threads.
   Supported value are SIGUSR1, SIGUSR2 or a signal number for now.
 
-LEAKTRACER_ONSIG_STOPALLTHREAD - If set, install a signal handler that will stop allocation 
+LEAKTRACER_ONSIG_STOPALLTHREAD - If set, install a signal handler that will stop allocation
   monitoring on the threads.
   Supported value are SIGUSR1, SIGUSR2 or a signal number for now.
 
 LEAKTRACER_ONSIG_REPORT - If set, install a signal handler that will write a raw LeakTracer
-  report in the file LEAKTRACER_ONSIG_REPORTFILENAME
+  report in the file LEAKTRACER_ONSIG_REPORTFILENAME.
   Supported value are SIGUSR1, SIGUSR2 or a signal number for now.
 
-LEAKTRACER_ONSIG_REPORTFILENAME - Name of a file where a report will be dump on a LEAKTRACER_ONSIG_REPORT
+LEAKTRACER_ONSIG_REPORTFILENAME - Name of a file where a report will be dump on a LEAKTRACER_ONSIG_REPORT.
 
 LEAKTRACER_ONSTART_STARTALLTHREAD - If set, start monitoring all allocation from the first allocation made.
 
-LEAKTRACER_ONEXIT_REPORT - If set, write  a raw LeakTracer report in the file
+LEAKTRACER_ONEXIT_REPORT - If set, write a raw LeakTracer report in the file
    LEAKTRACER_ONEXIT_REPORTFILENAME when program exit.
 
-LEAKTRACER_ONEXIT_REPORTFILENAME - 
+LEAKTRACER_ONEXIT_REPORTFILENAME -
 
 LEAKTRACER_AUTO_REPORTFILENAME - Equivalent to LEAKTRACER_ONSTART_STARTALLTHREAD=1
   LEAKTRACER_ONEXIT_REPORT=1 LEAKTRACER_ONEXIT_REPORTFILENAME=$LEAKTRACER_AUTO_REPORTFILENAME
 
 
-Exemple:
+Example:
 LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_AUTO_REPORTFILENAME=leaks.out /bin/ls
 
 
 LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_ONSIG_STARTALLTHREAD=USR1 LEAKTRACER_ONSIG_REPORT=USR2 LEAKTRACER_ONSIG_REPORTFILENAME=leaks.out top
 killall -USR1 top
 ...
-killall -USR2 top 
+killall -USR2 top
 
 Sometimes, SIGUSR1 and SIGUSR2 are used. You can use RT signals, which are generally not used :
 LD_PRELOAD=/usr/lib/libleaktracer.so LEAKTRACER_ONSIG_STARTALLTHREAD=35 LEAKTRACER_ONSIG_REPORT=36 LEAKTRACER_ONSIG_REPORTFILENAME=leaks.out top
@@ -113,10 +113,10 @@ Catching the leak
 =================
 
 Once you have your leak report, find the call stacks which generate the leaks.
-The call stack is is sequence of call where the leak appeared.
+The call stack is sequence of call where the leak appeared.
 
 To find the code that generate the leak given a memory address, several method can be used.
-* GDB/GDBSERVER: the most reliable method is to attach gdb or gdbserver to your program. When you're 
+* GDB/GDBSERVER: the most reliable method is to attach gdb or gdbserver to your program. When you're
 attach, type "break *addr" or "disassemble addr addr+10" to know where the leak appeared.
 The advantage of using a breakpoint is that you can find quickly how the leak happens.
 * You can activate the core dump support using "ulimit -c unlimited" in your shell. Generate a corefile
@@ -159,7 +159,7 @@ ALLOCATION_STACK_DEPTH to 1, or define USE_BACKTRACE to use backtrace() function
 Project history
 ===============
 Original project is made by Erwin S. Andreasen
-Michael Gopshtein rewrite most of it to add nice start/stop and other functionnalities.
+Michael Gopshtein rewrite most of it to add nice start/stop and other functionalities.
 Frederic Germain added malloc/realloc/free support, and environment variable support to
 use LeakTracer without having to recompile your program.
 
