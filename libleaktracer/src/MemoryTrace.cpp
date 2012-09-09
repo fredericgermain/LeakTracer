@@ -299,15 +299,32 @@ void MemoryTrace::removeThreadOptions(ThreadMonitoringOptions *pOptions)
 // writes all memory leaks to given stream
 void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 {
-	out << "# LeakTracer report\n";
-
+	struct timespec mono, utc, diff;
 	allocation_info_t *info;
 	void *p;
+	double d;
+	const int precision = 6;
+
+	clock_gettime(CLOCK_REALTIME, &utc);
+	clock_gettime(CLOCK_MONOTONIC, &mono);
+
+	if (utc.tv_nsec > mono.tv_nsec) {
+		diff.tv_nsec = utc.tv_nsec - mono.tv_nsec;
+		diff.tv_sec = utc.tv_sec - mono.tv_sec;
+	} else {
+		diff.tv_nsec = 1000000000 - (mono.tv_nsec - utc.tv_nsec);
+		diff.tv_sec = utc.tv_sec - mono.tv_sec -1;
+	}
+	out << "# LeakTracer report";
+        d = diff.tv_sec + (((double)diff.tv_nsec)/1000000000);
+	out << " diff_utc_mono=" << std::fixed << std::left << std::setprecision(precision) << d ;
+	out << "\n";
+
 	__allocations.beginIteration();
 	while (__allocations.getNextPair(&info, &p)) {
-                double d = info->timestamp.tv_sec + (((double)info->timestamp.tv_nsec)/1000000000);
+		d = info->timestamp.tv_sec + (((double)info->timestamp.tv_nsec)/1000000000);
 		out << "leak, ";
-		out << "time="  << std::fixed << std::left << std::setprecision(6) << d << ", "; // setw(16) ?
+		out << "time="  << std::fixed << std::left << std::setprecision(precision) << d << ", "; // setw(16) ?
 		out << "stack=";
 		for (unsigned int i = 0; i < ALLOCATION_STACK_DEPTH; i++) {
 			if (info->allocStack[i] == NULL) break;
