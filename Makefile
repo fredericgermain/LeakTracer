@@ -57,6 +57,7 @@ CPPFLAGS += -DUSE_BACKTRACE
 DYNLIB_FLAGS=-fpic -DSHARED -Wl,-z,defs
 # timestamp support
 LD_FLAGS=-lrt
+LD_FLAGS+=  -ldl -lpthread
 
 CXXFLAGS += $(EXTRA_CXXFLAGS)
 
@@ -88,7 +89,7 @@ $(LTLIB): $(OBJS)
 	ar rcs $(LTLIB) $(OBJS)
 
 $(LTLIBSO): $(SHOBJS)
-	$(CXX) $(LD_FLAGS) -shared $(DYNLIB_FLAGS) -o $(LTLIBSO) $(SHOBJS) -ldl -lpthread
+	$(CXX) -shared $(DYNLIB_FLAGS) -o $(LTLIBSO) $(SHOBJS) $(LD_FLAGS)
 
 $(OBJDIR)/%.os: %.c $(HEADERS)
 	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
