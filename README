@@ -39,7 +39,7 @@ first of your link command. You should see leaktracer.so as the first NEEDED ent
 the Dynamic Section when you do a "objdump -p" of your program (through this check is
 really dependent of your binary loader)
 * use the LD_PRELOAD environment variable to be sure it is loaded before any other library.
-you don't need so change your program using this method. You can then customize LeakTracer
+You don't need to change your program using this method. You can then customize LeakTracer
 behaviour using Environment variables.
 
 
