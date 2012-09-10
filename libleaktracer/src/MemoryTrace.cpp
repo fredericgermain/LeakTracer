@@ -318,7 +318,7 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 		diff.tv_sec = utc.tv_sec - mono.tv_sec -1;
 	}
 	out << "# LeakTracer report";
-        d = diff.tv_sec + (((double)diff.tv_nsec)/1000000000);
+	d = diff.tv_sec + (((double)diff.tv_nsec)/1000000000);
 	out << " diff_utc_mono=" << std::fixed << std::left << std::setprecision(precision) << d ;
 	out << "\n";
 
