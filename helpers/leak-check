@@ -1,0 +1,85 @@
+#!/bin/sh
+#
+# This is a helper for running custom executable with LeakTracer.
+#
+# Set LEAKTRACER_SHARED_LIB environment variable to specify a path to the LeakTracer library.
+#
+# Set LEAKTRACER_ONSIG environment variable to use signals for managing LeakTracer,
+# otherwise LeakTracer would be enabled from the start.
+#
+# You can override defaults by setting
+# - LEAKTRACER_ONSIG_REPORTFILENAME,
+# - LEAKTRACER_ONSIG_STARTALLTHREAD,
+# - LEAKTRACER_ONSIG_STOPALLTHREAD,
+# - LEAKTRACER_ONSIG_REPORT,
+# when LEAKTRACER_ONSIG is set, and
+# - LEAKTRACER_AUTO_REPORTFILENAME
+# otherwise.
+#
+# Copyright Nikita Melnichenko [http://nikita.melnichenko.name], 2012
+# Lisence: GPL v2
+
+
+
+# print usage
+if [ -z "$1" ] ; then
+	echo "Usage: $0 PROGRAM [PARAMETER]..."
+	exit 0
+fi
+
+# if library wasn't set explicitly, try the one in the current dir
+if [ -z "$LEAKTRACER_SHARED_LIB" ] && [ -x "./libleaktracer.so" ] ; then
+	LEAKTRACER_SHARED_LIB="./libleaktracer.so"
+fi
+
+# set a path to the LeakTracer library
+if [ -z "$LEAKTRACER_SHARED_LIB" ] ; then
+	# THIS SHOULD POINT TO THE SYSTEM LIBRARY:
+	# USE: sed -i -e 's|\tLEAKTRACER_SYSTEM_SHARED_LIB=.*|\tLEAKTRACER_SYSTEM_SHARED_LIB=/PATH/TO/LIB|' leak-check
+	LEAKTRACER_SYSTEM_SHARED_LIB=/usr/lib/libleaktracer.so
+	LEAKTRACER_SHARED_LIB="$LEAKTRACER_SYSTEM_SHARED_LIB"
+fi
+
+# check the library
+if ! [ -x "$LEAKTRACER_SHARED_LIB" ]
+then
+	echo "LeakTracer library '$LEAKTRACER_SHARED_LIB' not found!"
+	echo "Please, set a proper path in the LEAKTRACER_SHARED_LIB variable."
+	exit 1
+fi
+
+# set defaults for those variables that haven't been specified
+if ! [ -z "$LEAKTRACER_ONSIG" ] ; then
+
+	if [ -z "$LEAKTRACER_ONSIG_REPORTFILENAME" ] ; then
+		LEAKTRACER_ONSIG_REPORTFILENAME=leak.out
+	fi
+	if [ -z "$LEAKTRACER_ONSIG_STARTALLTHREAD" ] ; then
+		LEAKTRACER_ONSIG_STARTALLTHREAD=USR1
+	fi
+	if [ -z "$LEAKTRACER_ONSIG_REPORT" ] ; then
+		LEAKTRACER_ONSIG_REPORT=USR2
+	fi
+
+	export LEAKTRACER_ONSIG_REPORTFILENAME
+	export LEAKTRACER_ONSIG_STARTALLTHREAD
+	export LEAKTRACER_ONSIG_REPORT
+
+	REPORTFILENAME="$LEAKTRACER_ONSIG_REPORTFILENAME"
+
+elif [ -z "$LEAKTRACER_AUTO_REPORTFILENAME" ] ; then
+
+	export LEAKTRACER_AUTO_REPORTFILENAME=leak.out
+
+	REPORTFILENAME="$LEAKTRACER_AUTO_REPORTFILENAME"
+
+fi
+
+# save old report file
+if [ -f "$REPORTFILENAME" ] ; then
+	mv "$REPORTFILENAME" "$REPORTFILENAME-`stat --format '%Y' "$REPORTFILENAME"`"
+fi
+
+# run the program
+export LD_PRELOAD="$LEAKTRACER_SHARED_LIB"
+exec $@

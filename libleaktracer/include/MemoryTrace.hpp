@@ -3,12 +3,12 @@
 // LeakTracer
 // Contribution to original project by Erwin S. Andreasen
 // site: http://www.andreasen.org/LeakTracer/
-// 
+//
 // Added by Michael Gopshtein, 2006
 // mgopshtein@gmail.com
-// 
+//
 // Any comments/suggestions are welcome
-// 
+//
 ////////////////////////////////////////////////////////
 
 #ifndef __MEMORY_TRACE_h_included__
@@ -32,18 +32,18 @@
 
 /////////////////////////////////////////////////////////////
 // Following MACROS are available at compile time:
-// 
+//
 // START_TRACING_FROM_PROCESS_START - starts monitoring memory
 //              allocations from the start of BeatBox process.
 //              Otherwise should be explicetly activated
 //              default: OFF
-// 
-// ALLOCATION_STACK_DEPTH - max number of stack frame to 
+//
+// ALLOCATION_STACK_DEPTH - max number of stack frame to
 //              save. Max supported value: 10
-// 
+//
 // PRINTED_DATA_BUFFER_SIZE - size of the data buffer to be printed
-// 				for each allocation.
-// 
+//              for each allocation.
+//
 /////////////////////////////////////////////////////////////
 
 #ifndef ALLOCATION_STACK_DEPTH
@@ -65,46 +65,46 @@ namespace leaktracer {
  */
 class MemoryTrace {
 public:
-    /** singleton class */
+	/** singleton class */
 	inline static MemoryTrace & GetInstance(void);
 
-    /** setup undelying libc malloc/free... */
-        static int Setup(void);
+	/** setup undelying libc malloc/free... */
+	static int Setup(void);
 
-    /** starts monitoring memory allocations in all threads */
+	/** starts monitoring memory allocations in all threads */
 	inline void startMonitoringAllThreads(void);
-    /** starts monitoring memory allocations in current thread */
+	/** starts monitoring memory allocations in current thread */
 	inline void startMonitoringThisThread(void);
 
-    /** stops monitoring memory allocations (in all threads or in
-    *   this thread only, depends on the function used to start
-    *   monitoring */
+	/** stops monitoring memory allocations (in all threads or in
+	 *   this thread only, depends on the function used to start
+	 *   monitoring */
 	inline void stopMonitoringAllocations(void);
 
-    /** stops all monitoring - both of allocations and releases */
+	/** stops all monitoring - both of allocations and releases */
 	inline void stopAllMonitoring(void);
 
-    /** registers new memory allocation, should be called by the
-     *  function intercepting "new" calls */
+	/** registers new memory allocation, should be called by the
+	 *  function intercepting "new" calls */
 	inline void registerAllocation(void *p, size_t size, bool is_array);
 
-    /** registers memory reallocation, should be called by the
-     *  function intercepting realloc calls */
+	/** registers memory reallocation, should be called by the
+	 *  function intercepting realloc calls */
 	inline void registerReallocation(void *p, size_t size, bool is_array);
 
-    /** registers memory release, should be called by the
-     *  function intercepting "delete" calls */
+	/** registers memory release, should be called by the
+	 *  function intercepting "delete" calls */
 	inline void registerRelease(void *p, bool is_array);
 
-    /** writes report with all memory leaks */
+	/** writes report with all memory leaks */
 	void writeLeaks(std::ostream &out);
 
-    /** writes report with all memory leaks */
+	/** writes report with all memory leaks */
 	void writeLeaksToFile(const char* reportFileName);
 
-    /** returns TRUE if all monitoring is currently disabled,
-     *  required to make sure we don't use this class before it
-     *  was properly initialized */
+	/** returns TRUE if all monitoring is currently disabled,
+	 *  required to make sure we don't use this class before it
+	 *  was properly initialized */
 	static inline bool AllMonitoringIsDisabled(void) {
 		return (((intptr_t)pthread_getspecific(__thread_internal_disabler_key)) != 0);
 	}
@@ -128,7 +128,7 @@ public:
 	static void __attribute__ ((constructor)) MemoryTraceOnInit(void);
 	static void __attribute__ ((destructor)) MemoryTraceOnExit(void);
 
-    /** destructor */
+	/** destructor */
 	virtual ~MemoryTrace(void);
 
 private:
@@ -197,10 +197,10 @@ private:
 
 
 //////////////////////////////////////////////////////////////////////
-// 
+//
 // IMPLEMENTATION: MemoryTrace
 // (inline functions)
-// 
+//
 //////////////////////////////////////////////////////////////////////
 
 
@@ -233,7 +233,7 @@ inline MemoryTrace::ThreadMonitoringOptions & MemoryTrace::getThreadOptions(void
 // monitoring for all threads
 inline void MemoryTrace::stopMonitoringPerThreadAllocations(void)
 {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	MutexLock lock(__threadListMutex);
 	for (list_monitoring_options_t::iterator it = __listThreadOptions.begin(); it != __listThreadOptions.end(); ++it) {
@@ -245,7 +245,7 @@ inline void MemoryTrace::stopMonitoringPerThreadAllocations(void)
 // starts monitoring allocations and releases in all threads
 inline void MemoryTrace::startMonitoringAllThreads(void)
 {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	TRACE((stderr, "LeakTracer: startMonitoringAllThreads\n"));
 	if (!__monitoringReleases) {
@@ -265,7 +265,7 @@ inline void MemoryTrace::startMonitoringAllThreads(void)
 // (note: releases are monitored in all threads)
 inline void MemoryTrace::startMonitoringThisThread(void)
 {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	TRACE((stderr, "LeakTracer: startMonitoringThisThread\n"));
 	if (!__monitoringAllThreads) {
@@ -286,7 +286,7 @@ inline void MemoryTrace::startMonitoringThisThread(void)
 // will stop monitoring all threads, of current thread only
 inline void MemoryTrace::stopMonitoringAllocations(void)
 {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	TRACE((stderr, "LeakTracer: stopMonitoringAllocations\n"));
 	if (__monitoringAllThreads)
@@ -299,7 +299,7 @@ inline void MemoryTrace::stopMonitoringAllocations(void)
 // stop all allocation/releases monitoring
 inline void MemoryTrace::stopAllMonitoring(void)
 {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	TRACE((stderr, "LeakTracer: stopAllMonitoring\n"));
 	stopMonitoringAllocations();
@@ -329,7 +329,7 @@ inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(6)) != NULL) ? __builtin_return_address(6) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
 	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(7)) != NULL) ? __builtin_return_address(7) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
 	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(8)) != NULL) ? __builtin_return_address(8) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(9)) != NULL) ? __builtin_return_address(9) : NULL; 
+	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(9)) != NULL) ? __builtin_return_address(9) : NULL;
 #endif
 	// fill remaining spaces
 	for (; iIndex < ALLOCATION_STACK_DEPTH; iIndex++)
@@ -369,7 +369,7 @@ inline void MemoryTrace::registerReallocation(void *p, size_t size, bool is_arra
 			info->size = size;
 			info->isArray = is_array;
 			storeAllocationStack(info->allocStack);
-                        storeTimestamp(info->timestamp);
+			storeTimestamp(info->timestamp);
 		}
 	}
 
@@ -398,7 +398,7 @@ inline void MemoryTrace::registerRelease(void *p, bool is_array)
 	}
 }
 
-//storetimestamp function
+// storetimestamp function
 inline void MemoryTrace::storeTimestamp(struct timespec &timestamp)
 {
   clock_gettime(CLOCK_MONOTONIC, &timestamp);

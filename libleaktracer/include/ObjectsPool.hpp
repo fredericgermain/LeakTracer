@@ -3,12 +3,12 @@
 // LeakTracer
 // Contribution to original project by Erwin S. Andreasen
 // site: http://www.andreasen.org/LeakTracer/
-// 
+//
 // Added by Michael Gopshtein, 2006
 // mgopshtein@gmail.com
-// 
+//
 // Any comments/suggestions are welcome
-// 
+//
 ////////////////////////////////////////////////////////
 
 #ifndef __OBJECTS_POOL_h_included__
@@ -35,7 +35,7 @@ extern void* (*lt_realloc)(void *ptr, size_t size);
 extern void* (*lt_calloc)(size_t nmemb, size_t size);
 
 /*
- * underlying allocation, de-allocation used within 
+ * underlying allocation, de-allocation used within
  * this tool
  */
 #define LT_MALLOC  (*lt_malloc)
@@ -50,7 +50,6 @@ namespace leaktracer {
  * This class used for allocation of chunks of elements
  * of type E on the heap
  */
-
 template <typename E, unsigned int NumOfElementsInChunk>
 class TDefaultChunkAllocator
 {
@@ -84,10 +83,10 @@ struct t_list_element
 
 #define FREE_CELL_NONE		NULL
 
-template <typename T, 
-		  unsigned int NumOfElementsInChunk,
-		  bool IsThreadSafe = true,
-		  typename CHUNK_ALLOCATOR = TDefaultChunkAllocator< t_list_element<T>, NumOfElementsInChunk > >
+template <typename T,
+	unsigned int NumOfElementsInChunk,
+	bool IsThreadSafe = true,
+	typename CHUNK_ALLOCATOR = TDefaultChunkAllocator< t_list_element<T>, NumOfElementsInChunk > >
 class TObjectsPool
 {
 public:
@@ -124,17 +123,17 @@ private:
 	void initializeList( t_list_element<T> *pChunk );
 
 	// the memory allocator function
-	CHUNK_ALLOCATOR 	__allocator;
+	CHUNK_ALLOCATOR __allocator;
 
 	// pointer to the first free element
-	t_list_element<T> 	*__first_free_cell;
+	t_list_element<T> *__first_free_cell;
 
 	// statistics
-	unsigned long		__num_of_objects;
-	unsigned long		__num_of_chunks;
+	unsigned long __num_of_objects;
+	unsigned long __num_of_chunks;
 
 	// synchnonization
-	Mutex				__mutex;
+	Mutex __mutex;
 };
 
 
@@ -200,7 +199,7 @@ void * TObjectsPool<T, NumOfElementsInChunk, IsThreadSafe, CHUNK_ALLOCATOR>::all
 template <typename T, unsigned int NumOfElementsInChunk, bool IsThreadSafe, typename CHUNK_ALLOCATOR>
 void * TObjectsPool<T, NumOfElementsInChunk, IsThreadSafe, CHUNK_ALLOCATOR>::allocate()
 {
-	if (! IsThreadSafe) 
+	if (! IsThreadSafe)
 		return allocate_unlocked();
 
 	MutexLock lock(__mutex);
@@ -248,6 +247,8 @@ unsigned long TObjectsPool<T, NumOfElementsInChunk, IsThreadSafe, CHUNK_ALLOCATO
 	return __num_of_chunks;
 }
 
+
 }; // namespace
+
 
 #endif  // include once

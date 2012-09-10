@@ -3,12 +3,12 @@
 // LeakTracer
 // Contribution to original project by Erwin S. Andreasen
 // site: http://www.andreasen.org/LeakTracer/
-// 
+//
 // Added by Michael Gopshtein, 2006
 // mgopshtein@gmail.com
-// 
+//
 // Any comments/suggestions are welcome
-// 
+//
 ////////////////////////////////////////////////////////
 
 #include "MemoryTrace.hpp"
@@ -21,7 +21,7 @@ void* (*lt_calloc)(size_t nmemb, size_t size);
 
 void* operator new(size_t size) {
 	void *p;
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	p = LT_MALLOC(size);
 	leaktracer::MemoryTrace::GetInstance().registerAllocation(p, size, false);
@@ -32,9 +32,9 @@ void* operator new(size_t size) {
 
 void* operator new[] (size_t size) {
 	void *p;
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
-	p =LT_MALLOC(size);
+	p = LT_MALLOC(size);
 	leaktracer::MemoryTrace::GetInstance().registerAllocation(p, size, true);
 
 	return p;
@@ -42,7 +42,7 @@ void* operator new[] (size_t size) {
 
 
 void operator delete (void *p) {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	leaktracer::MemoryTrace::GetInstance().registerRelease(p, false);
 	LT_FREE(p);
@@ -50,7 +50,7 @@ void operator delete (void *p) {
 
 
 void operator delete[] (void *p) {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	leaktracer::MemoryTrace::GetInstance().registerRelease(p, true);
 	LT_FREE(p);
@@ -59,40 +59,40 @@ void operator delete[] (void *p) {
 /** -- libc memory operators -- **/
 
 /* malloc
- * in some malloc implementation, there is a recursive call to malloc 
+ * in some malloc implementation, there is a recursive call to malloc
  * (for instance, in uClibc 0.9.29 malloc-standard )
- * we use a InternalMonitoringDisablerThreadUp that use a tls variable to prevent several registration 
+ * we use a InternalMonitoringDisablerThreadUp that use a tls variable to prevent several registration
  * during the same malloc
  */
 void *malloc(size_t size)
 {
 	void *p;
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
-	p =LT_MALLOC(size);
+	p = LT_MALLOC(size);
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
 	leaktracer::MemoryTrace::GetInstance().registerAllocation(p, size, false);
 
 	return p;
 }
 
-void  free(void* ptr)
+void free(void* ptr)
 {
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	leaktracer::MemoryTrace::GetInstance().registerRelease(ptr, false);
 	LT_FREE(ptr);
 }
+
 void* realloc(void *ptr, size_t size)
 {
 	void *p;
-        leaktracer::MemoryTrace::Setup();
-
+	leaktracer::MemoryTrace::Setup();
 
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
 
-	p =LT_REALLOC(ptr, size);
+	p = LT_REALLOC(ptr, size);
 
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
 
@@ -113,14 +113,12 @@ void* realloc(void *ptr, size_t size)
 void* calloc(size_t nmemb, size_t size)
 {
 	void *p;
-        leaktracer::MemoryTrace::Setup();
+	leaktracer::MemoryTrace::Setup();
 
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
-	p =LT_CALLOC(nmemb, size);
+	p = LT_CALLOC(nmemb, size);
 	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
 	leaktracer::MemoryTrace::GetInstance().registerAllocation(p, nmemb*size, false);
 
 	return p;
 }
-
-
