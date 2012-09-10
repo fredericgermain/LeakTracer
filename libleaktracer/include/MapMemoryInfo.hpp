@@ -3,12 +3,12 @@
 // LeakTracer
 // Contribution to original project by Erwin S. Andreasen
 // site: http://www.andreasen.org/LeakTracer/
-// 
+//
 // Added by Michael Gopshtein, 2006
 // mgopshtein@gmail.com
-// 
+//
 // Any comments/suggestions are welcome
-// 
+//
 ////////////////////////////////////////////////////////
 
 #ifndef __MAP_MEMORY_INFO_h_included__
@@ -80,15 +80,15 @@ private:
 
 
 //////////////////////////////////////////////////////////////////////
-// 
+//
 // IMPLEMENTATION: TMapMemoryInfo
 // (inline template functions)
-// 
+//
 //////////////////////////////////////////////////////////////////////
 
 template <typename T>
 TMapMemoryInfo<T>::TMapMemoryInfo(void)
-{ 
+{
 	// initializes all lists to be empty
 	for( int i = 0; i < NUMBER_OF_MEMORY_INFO_LISTS; i++ )
 		__info_lists[i] = NULL;
@@ -109,7 +109,7 @@ inline T * TMapMemoryInfo<T>::insert(void *ptr)
 	if( !pNew )
 		return NULL;
 
-	// insert to the "hash(ptr)" list 
+	// insert to the "hash(ptr)" list
 	long key = hash(ptr);
 	pNew->next = __info_lists[key];
 	__info_lists[key] = pNew;
@@ -195,7 +195,7 @@ bool TMapMemoryInfo<T>::getNextPair(T **ppObject, void **pptr)
 		}
 
 		if (__lIterationCurrentListIndex == NUMBER_OF_MEMORY_INFO_LISTS)
-		{	
+		{
 			// reached the end of the lists
 			*ppObject = NULL;
 			*pptr = NULL;
@@ -226,8 +226,6 @@ void TMapMemoryInfo<T>::clearAllInfo(void)
 		}
 	}
 }
-
-
 
 
 }  // end namespace

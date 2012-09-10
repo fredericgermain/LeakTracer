@@ -1,5 +1,3 @@
-
-
 #ifndef __LEAKTRACE_L_h_included__
 #define __LEAKTRACE_L_h_included__
 
