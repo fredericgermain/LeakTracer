@@ -44,7 +44,7 @@ behaviour using Environment variables.
 
 
 In any case your application must also be compiled with debugging symbols enabled
-(i.e. -g).
+(i.e. -g), so that you can lookup part of code that leaked with your source code.
 
 
 Environment variables
@@ -132,7 +132,7 @@ You should then run leak-analyze, since looking at the raw leaks.out file will
 not help you much. You need perl to run it.
 Two versions of lead-analyze are provided:
 * one is using gdb to find the line of the leak in your source code. This is the best way so far.
-* one is using addr2line. To problem with is method is that it won't find the line in the dependent library
+* one is using addr2line. To problem with is method is that it won't find the line in the dynamic libraries
 
 
 Help developping Leaktracer
