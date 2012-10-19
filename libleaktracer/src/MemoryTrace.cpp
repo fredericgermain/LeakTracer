@@ -36,6 +36,7 @@ extern "C" void* __libc_calloc(size_t nmemb, size_t size) __attribute__((weak));
 namespace leaktracer {
 
 
+bool bLeakTracerIsSetup = false;
 MemoryTrace *MemoryTrace::__instance = NULL;
 pthread_once_t MemoryTrace::_thread_create_key_once = PTHREAD_ONCE_INIT;
 pthread_once_t MemoryTrace::_thread_init_all_once = PTHREAD_ONCE_INIT;
@@ -234,10 +235,14 @@ MemoryTrace::init_all()
 
 int MemoryTrace::Setup(void)
 {
-	pthread_once(&MemoryTrace::_thread_create_key_once, MemoryTrace::init_create_key);
+	if (!bLeakTracerIsSetup) {
+		if (!AllMonitoringIsDisabled())
+			pthread_once(&MemoryTrace::_thread_init_all_once, MemoryTrace::init_all);
 
-	if (!AllMonitoringIsDisabled())
-		pthread_once(&MemoryTrace::_thread_init_all_once, MemoryTrace::init_all);
+		pthread_once(&MemoryTrace::_thread_create_key_once, MemoryTrace::init_create_key);
+
+		bLeakTracerIsSetup = true;
+	}
 
 	return 0;
 }

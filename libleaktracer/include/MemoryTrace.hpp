@@ -340,6 +340,9 @@ inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 // adds all relevant info regarding current allocation to map
 inline void MemoryTrace::registerAllocation(void *p, size_t size, bool is_array)
 {
+	if (!bLeakTracerIsSetup)
+		return;
+
 	if (!AllMonitoringIsDisabled() && (__monitoringAllThreads || getThreadOptions().monitoringAllocations) && p != NULL) {
 		MutexLock lock(__allocations_mutex);
 		allocation_info_t *info = __allocations.insert(p);
@@ -362,6 +365,9 @@ inline void MemoryTrace::registerAllocation(void *p, size_t size, bool is_array)
 // adds all relevant info regarding current allocation to map
 inline void MemoryTrace::registerReallocation(void *p, size_t size, bool is_array)
 {
+	if (!bLeakTracerIsSetup)
+		return;
+
 	if (!AllMonitoringIsDisabled() && (__monitoringAllThreads || getThreadOptions().monitoringAllocations) && p != NULL) {
 		MutexLock lock(__allocations_mutex);
 		allocation_info_t *info = __allocations.find(p);
@@ -384,6 +390,9 @@ inline void MemoryTrace::registerReallocation(void *p, size_t size, bool is_arra
 // removes allocation's info from the map
 inline void MemoryTrace::registerRelease(void *p, bool is_array)
 {
+	if (!bLeakTracerIsSetup)
+		return;
+
 	if (!AllMonitoringIsDisabled() && __monitoringReleases && p != NULL) {
 		MutexLock lock(__allocations_mutex);
 		allocation_info_t *info = __allocations.find(p);

@@ -11,4 +11,7 @@
 
 #define LEAKTRACER_VERSION "3.0.0"
 
+namespace leaktracer {
+  extern bool bLeakTracerIsSetup;
+}
 #endif /* __LEAKTRACE_L_h_included__ */
