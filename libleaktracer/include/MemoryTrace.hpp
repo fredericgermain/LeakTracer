@@ -277,7 +277,7 @@ inline void MemoryTrace::startMonitoringThisThread(void)
 			MutexLock lock(__allocations_mutex);
 			// double-check inside Mutex
 			if (!__monitoringReleases) {
-				clearAllocationsInfo();
+				__allocations.clearAllInfo();
 				__monitoringReleases = true;
 			}
 		}
