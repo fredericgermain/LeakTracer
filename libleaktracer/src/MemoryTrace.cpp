@@ -96,11 +96,26 @@ MemoryTrace::init_create_key()
 	pthread_key_create(&__thread_internal_disabler_key, NULL);
 }
 
+typedef struct {
+  const char *symbname;
+  void *libcsymbol;
+  void **localredirect;
+} libc_alloc_func_t;
+
+static libc_alloc_func_t libc_alloc_funcs[] = {
+  { "calloc", (void*)__libc_calloc, (void**)(&lt_calloc) },
+  { "malloc", (void*)__libc_malloc, (void**)(&lt_malloc) },
+  { "realloc", (void*)__libc_realloc, (void**)(&lt_realloc) },
+  { "free", (void*)__libc_free, (void**)(&lt_free) }
+};
+
 void
 MemoryTrace::init_all()
 {
 	int sigNumber;
 	struct sigaction sigact;
+	libc_alloc_func_t *curfunc;
+	unsigned i;
 
 	if (!getenv("LEAKTRACER_NOBANNER"))
 	{
@@ -111,78 +126,16 @@ MemoryTrace::init_all()
 #endif
 	}
 
-	if (!lt_calloc)
-	{
-		if (__libc_calloc)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc calloc without usin dlsym\n"));
-			lt_calloc = __libc_calloc;
-		}
-		else
-		{
-			TRACE((stderr, "LeakTracer: setup dlsym(lt_calloc)\n"));
-			lt_calloc = (void*(*)(size_t, size_t))dlsym(RTLD_NEXT, "calloc");
-			TRACE((stderr, "LeakTracer: setup lt_calloc=%p\n", lt_calloc));
-			if (!lt_calloc) {
-				fprintf(stderr, "LeakTracer: could not resolve 'calloc' in 'libc.so': %s\n", dlerror());
-				exit(1);
+ 	for (i=0; i<(sizeof(libc_alloc_funcs)/sizeof(libc_alloc_funcs[0])); ++i) {
+		curfunc = &libc_alloc_funcs[i];
+		if (!*curfunc->localredirect) {
+			if (curfunc->libcsymbol) {
+				*curfunc->localredirect = curfunc->libcsymbol;
+			} else {
+				*curfunc->localredirect = dlsym(RTLD_NEXT, curfunc->symbname); 
 			}
 		}
-	}
-
-	if (!lt_malloc)
-	{
-		if (__libc_malloc)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc malloc without usin dlsym\n"));
-			lt_malloc = __libc_malloc;
-		}
-		else
-		{
-			lt_malloc = (void*(*)(size_t))dlsym(RTLD_NEXT, "malloc");
-			TRACE((stderr, "LeakTracer: setup lt_malloc=%p\n", lt_malloc));
-			if (!lt_malloc) {
-				fprintf(stderr, "LeakTracer: could not resolve 'malloc' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
-	}
-
-	if (!lt_free)
-	{
-		if (__libc_free)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc free without usin dlsym\n"));
-			lt_free = __libc_free;
-		}
-		else
-		{
-			lt_free = (void(*)(void*))dlsym(RTLD_NEXT, "free");
-			TRACE((stderr, "LeakTracer: setup lt_free=%p\n", lt_free));
-			if (!lt_free) {
-				fprintf(stderr, "LeakTracer: could not resolve 'free' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
-	}
-
-	if (!lt_realloc)
-	{
-		if (__libc_realloc)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc realloc without usin dlsym\n"));
-			lt_realloc = __libc_realloc;
-		}
-		else
-		{
-			lt_realloc = (void*(*)(void*,size_t))dlsym(RTLD_NEXT, "realloc");
-			TRACE((stderr, "LeakTracer: setup lt_realloc=%p\n", lt_realloc));
-			if (!lt_realloc) {
-				fprintf(stderr, "LeakTracer: could not resolve 'realloc' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
-	}
+	} 
 
 	if (getenv("LEAKTRACER_ONSIG_STARTALLTHREAD"))
 	{
