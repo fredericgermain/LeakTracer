@@ -130,7 +130,8 @@ ifneq ($(CROSS_COMPILE),)
 	@echo "Run tests not available when cross compiling for $(CROSS_COMPILE)"
 else
 	@[ -d $(OBJDIR)/tests ] || mkdir -p $(OBJDIR)/tests
-	@for testbin in $(TESTSBIN); do \
+	for testbin in $(TESTSBIN); do \
+	  rm $(OBJDIR)/tests/leaks.out; \
 	  cd $(OBJDIR)/tests && $(TESTRUNENV) $${testbin}; \
 	  echo "###### running $${testbin}"; \
 	  $(SRCDIR)/helpers/leak-analyze-addr2line $${testbin} $(OBJDIR)/tests/leaks.out; \
