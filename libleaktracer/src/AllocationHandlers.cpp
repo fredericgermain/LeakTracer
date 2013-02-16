@@ -69,9 +69,9 @@ void *malloc(size_t size)
 	void *p;
 	leaktracer::MemoryTrace::Setup();
 
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
+	leaktracer::MemoryTrace::GetInstance().InternalMonitoringDisablerThreadUp();
 	p = LT_MALLOC(size);
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
+	leaktracer::MemoryTrace::GetInstance().InternalMonitoringDisablerThreadDown();
 	leaktracer::MemoryTrace::GetInstance().registerAllocation(p, size, false);
 
 	return p;
@@ -90,11 +90,11 @@ void* realloc(void *ptr, size_t size)
 	void *p;
 	leaktracer::MemoryTrace::Setup();
 
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
+	leaktracer::MemoryTrace::GetInstance().InternalMonitoringDisablerThreadUp();
 
 	p = LT_REALLOC(ptr, size);
 
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
+	leaktracer::MemoryTrace::GetInstance().InternalMonitoringDisablerThreadDown();
 
 	if (p != ptr)
 	{
@@ -115,9 +115,9 @@ void* calloc(size_t nmemb, size_t size)
 	void *p;
 	leaktracer::MemoryTrace::Setup();
 
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
+	leaktracer::MemoryTrace::GetInstance().InternalMonitoringDisablerThreadUp();
 	p = LT_CALLOC(nmemb, size);
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
+	leaktracer::MemoryTrace::GetInstance().InternalMonitoringDisablerThreadDown();
 	leaktracer::MemoryTrace::GetInstance().registerAllocation(p, nmemb*size, false);
 
 	return p;

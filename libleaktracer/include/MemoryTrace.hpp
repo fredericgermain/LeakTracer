@@ -105,11 +105,12 @@ public:
 	/** returns TRUE if all monitoring is currently disabled,
 	 *  required to make sure we don't use this class before it
 	 *  was properly initialized */
-	static inline bool AllMonitoringIsDisabled(void) {
-		return (((intptr_t)pthread_getspecific(__thread_internal_disabler_key)) != 0);
+	inline bool AllMonitoringIsDisabled(void) {
+		return ( (__monitoringDisabler!=0)||
+			 (((intptr_t)pthread_getspecific(__thread_internal_disabler_key)) != 0) );
 	}
 
-	static inline int InternalMonitoringDisablerThreadUp(void) {
+	inline int InternalMonitoringDisablerThreadUp(void) {
 		intptr_t oldvalue;
 		oldvalue = (intptr_t)pthread_getspecific(__thread_internal_disabler_key);
 		//TRACE((stderr, "InternalMonitoringDisablerThreadUp oldvalue %d\n", oldvalue));
@@ -117,7 +118,7 @@ public:
 		return oldvalue;
 	}
 
-	static inline int InternalMonitoringDisablerThreadDown(void) {
+	inline int InternalMonitoringDisablerThreadDown(void) {
 		intptr_t oldvalue;
 		oldvalue = (intptr_t)pthread_getspecific(__thread_internal_disabler_key);
 		//TRACE((stderr, "InternalMonitoringDisablerThreadDown oldvalue %d\n", oldvalue));
@@ -135,18 +136,12 @@ private:
 	// singleton object
 	MemoryTrace(void);
 	static MemoryTrace *__instance;
-	static bool __setupDone;
 
 	// global settings
+	bool __setupDone;
 	bool __monitoringAllThreads;
 	bool __monitoringReleases;
-
-	// signal handler
-	static int __sigStartAllThread;
-	static int __sigStopAllThread;
-	static int __sigReport;
-	static void sigactionHandler(int, siginfo_t *, void *);
-	static int signalNumberFromString(const char* signame);
+	int  __monitoringDisabler;
 
 	// per-thread settings, for cases where only allocations
 	// made by specific threads are monitored
@@ -159,16 +154,25 @@ private:
 	inline void stopMonitoringPerThreadAllocations(void);
 
 	// key to access per-thread info
-	static void init_all();
-	static pthread_once_t _thread_init_all_once;
-
-	static void init_create_key();
-	static pthread_once_t _thread_create_key_once;
-
-	static pthread_key_t __thread_internal_disabler_key;
+	pthread_key_t __thread_internal_disabler_key;
 
 	static void CleanUpThreadData(void *ptrThreadOptions);
 	pthread_key_t __thread_options_key;
+
+	// init functions
+	static void init_no_alloc_allowed();
+	static pthread_once_t _init_no_alloc_allowed_once;
+
+	void init_full();
+	static void init_full_from_once();
+	static pthread_once_t _init_full_once;
+
+	// signal handler
+	static int __sigStartAllThread;
+	static int __sigStopAllThread;
+	static int __sigReport;
+	static void sigactionHandler(int, siginfo_t *, void *);
+	static int signalNumberFromString(const char* signame);
 
 	/** writes report with all memory leaks */
 	void writeLeaksPrivate(std::ostream &out);
