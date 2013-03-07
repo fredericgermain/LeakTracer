@@ -35,20 +35,32 @@ extern "C" void* __libc_calloc(size_t nmemb, size_t size) __attribute__((weak));
 
 namespace leaktracer {
 
+typedef struct {
+  const char *symbname;
+  void *libcsymbol;
+  void **localredirect;
+} libc_alloc_func_t;
+
+static libc_alloc_func_t libc_alloc_funcs[] = {
+  { "calloc", (void*)__libc_calloc, (void**)(&lt_calloc) },
+  { "malloc", (void*)__libc_malloc, (void**)(&lt_malloc) },
+  { "realloc", (void*)__libc_realloc, (void**)(&lt_realloc) },
+  { "free", (void*)__libc_free, (void**)(&lt_free) }
+};
 
 MemoryTrace *MemoryTrace::__instance = NULL;
-pthread_once_t MemoryTrace::_thread_create_key_once = PTHREAD_ONCE_INIT;
-pthread_once_t MemoryTrace::_thread_init_all_once = PTHREAD_ONCE_INIT;
-pthread_key_t  MemoryTrace::__thread_internal_disabler_key;
+char s_memoryTrace_instance[sizeof(MemoryTrace)];
+pthread_once_t MemoryTrace::_init_no_alloc_allowed_once = PTHREAD_ONCE_INIT;
+pthread_once_t MemoryTrace::_init_full_once = PTHREAD_ONCE_INIT;
+
 int MemoryTrace::__sigStartAllThread = 0;
 int MemoryTrace::__sigStopAllThread = 0;
 int MemoryTrace::__sigReport = 0;
 
 
 MemoryTrace::MemoryTrace(void) :
-	__monitoringAllThreads(false), __monitoringReleases(false)
+	__setupDone(false), __monitoringAllThreads(false), __monitoringReleases(false), __monitoringDisabler(0)
 {
-	pthread_key_create(&__thread_options_key, CleanUpThreadData);
 }
 
 void MemoryTrace::sigactionHandler(int sigNumber, siginfo_t *siginfo, void *arg)
@@ -91,16 +103,50 @@ int MemoryTrace::signalNumberFromString(const char* signame)
 }
 
 void
-MemoryTrace::init_create_key()
+MemoryTrace::init_no_alloc_allowed()
 {
-	pthread_key_create(&__thread_internal_disabler_key, NULL);
+	libc_alloc_func_t *curfunc;
+	unsigned i;
+
+ 	for (i=0; i<(sizeof(libc_alloc_funcs)/sizeof(libc_alloc_funcs[0])); ++i) {
+		curfunc = &libc_alloc_funcs[i];
+		if (!*curfunc->localredirect) {
+			if (curfunc->libcsymbol) {
+				*curfunc->localredirect = curfunc->libcsymbol;
+			} else {
+				*curfunc->localredirect = dlsym(RTLD_NEXT, curfunc->symbname); 
+			}
+		}
+	} 
+
+	__instance = reinterpret_cast<MemoryTrace*>(&s_memoryTrace_instance);
+
+	// we're using a c++ placement to initialized the MemoryTrace object living in the data section
+	new (__instance) MemoryTrace();
+
+	// it seems some implementation of pthread_key_create use malloc() internally (old linuxthreads)
+	// these are not supported yet
+	pthread_key_create(&__instance->__thread_internal_disabler_key, NULL);
 }
 
 void
-MemoryTrace::init_all()
+MemoryTrace::init_full_from_once()
+{
+	leaktracer::MemoryTrace::GetInstance().init_full();
+}
+
+void
+MemoryTrace::init_full()
 {
 	int sigNumber;
 	struct sigaction sigact;
+
+	__monitoringDisabler++;
+
+	void *testmallocok = malloc(1);
+	free(testmallocok);
+
+	pthread_key_create(&__thread_options_key, CleanUpThreadData);
 
 	if (!getenv("LEAKTRACER_NOBANNER"))
 	{
@@ -109,79 +155,6 @@ MemoryTrace::init_all()
 #else
 		fprintf(stderr, "LeakTracer " LEAKTRACER_VERSION " (static library) -- LGPLv2\n");
 #endif
-	}
-
-	if (!lt_calloc)
-	{
-		if (__libc_calloc)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc calloc without usin dlsym\n"));
-			lt_calloc = __libc_calloc;
-		}
-		else
-		{
-			TRACE((stderr, "LeakTracer: setup dlsym(lt_calloc)\n"));
-			lt_calloc = (void*(*)(size_t, size_t))dlsym(RTLD_NEXT, "calloc");
-			TRACE((stderr, "LeakTracer: setup lt_calloc=%p\n", lt_calloc));
-			if (!lt_calloc) {
-				fprintf(stderr, "LeakTracer: could not resolve 'calloc' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
-	}
-
-	if (!lt_malloc)
-	{
-		if (__libc_malloc)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc malloc without usin dlsym\n"));
-			lt_malloc = __libc_malloc;
-		}
-		else
-		{
-			lt_malloc = (void*(*)(size_t))dlsym(RTLD_NEXT, "malloc");
-			TRACE((stderr, "LeakTracer: setup lt_malloc=%p\n", lt_malloc));
-			if (!lt_malloc) {
-				fprintf(stderr, "LeakTracer: could not resolve 'malloc' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
-	}
-
-	if (!lt_free)
-	{
-		if (__libc_free)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc free without usin dlsym\n"));
-			lt_free = __libc_free;
-		}
-		else
-		{
-			lt_free = (void(*)(void*))dlsym(RTLD_NEXT, "free");
-			TRACE((stderr, "LeakTracer: setup lt_free=%p\n", lt_free));
-			if (!lt_free) {
-				fprintf(stderr, "LeakTracer: could not resolve 'free' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
-	}
-
-	if (!lt_realloc)
-	{
-		if (__libc_realloc)
-		{
-			TRACE((stderr, "LeakTracer: setup using libc realloc without usin dlsym\n"));
-			lt_realloc = __libc_realloc;
-		}
-		else
-		{
-			lt_realloc = (void*(*)(void*,size_t))dlsym(RTLD_NEXT, "realloc");
-			TRACE((stderr, "LeakTracer: setup lt_realloc=%p\n", lt_realloc));
-			if (!lt_realloc) {
-				fprintf(stderr, "LeakTracer: could not resolve 'realloc' in 'libc.so': %s\n", dlerror());
-				exit(1);
-			}
-		}
 	}
 
 	if (getenv("LEAKTRACER_ONSIG_STARTALLTHREAD"))
@@ -217,9 +190,6 @@ MemoryTrace::init_all()
 		TRACE((stderr, "LeakTracer: registered signal %d SIGREPORT for tid %d\n", sigNumber, (pid_t) syscall (SYS_gettid)));
 	}
 
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadUp();
-	__instance = new MemoryTrace();
-
 	if (getenv("LEAKTRACER_ONSTART_STARTALLTHREAD") || getenv("LEAKTRACER_AUTO_REPORTFILENAME"))
 	{
 		leaktracer::MemoryTrace::GetInstance().startMonitoringAllThreads();
@@ -229,16 +199,22 @@ MemoryTrace::init_all()
 	void *bt;
 	backtrace(&bt, 1);
 #endif
-	leaktracer::MemoryTrace::InternalMonitoringDisablerThreadDown();
+	__setupDone = true;
+
+	__monitoringDisabler--;
 }
 
 int MemoryTrace::Setup(void)
 {
-	pthread_once(&MemoryTrace::_thread_create_key_once, MemoryTrace::init_create_key);
+	pthread_once(&MemoryTrace::_init_no_alloc_allowed_once, MemoryTrace::init_no_alloc_allowed);
 
-	if (!AllMonitoringIsDisabled())
-		pthread_once(&MemoryTrace::_thread_init_all_once, MemoryTrace::init_all);
-
+	if (!leaktracer::MemoryTrace::GetInstance().AllMonitoringIsDisabled()) {
+		pthread_once(&MemoryTrace::_init_full_once, MemoryTrace::init_full_from_once);
+	}
+#if 0
+        else if (!leaktracer::MemoryTrace::GetInstance().__setupDone) {
+	}	
+#endif
 	return 0;
 }
 
