@@ -344,15 +344,22 @@ inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 // adds all relevant info regarding current allocation to map
 inline void MemoryTrace::registerAllocation(void *p, size_t size, bool is_array)
 {
+	allocation_info_t *info = NULL;
 	if (!AllMonitoringIsDisabled() && (__monitoringAllThreads || getThreadOptions().monitoringAllocations) && p != NULL) {
 		MutexLock lock(__allocations_mutex);
-		allocation_info_t *info = __allocations.insert(p);
+		info = __allocations.insert(p);
 		if (info != NULL) {
 			info->size = size;
 			info->isArray = is_array;
-			storeAllocationStack(info->allocStack);
 			storeTimestamp(info->timestamp);
 		}
+	}
+ 	// we store the stack without locking __allocations_mutex
+	// it should be safe enough
+	// prevent a deadlock between backtrave function who are now using advanced dl_iterate_phdr function
+ 	// and dl_* function which uses malloc functions
+	if (info != NULL) {
+		storeAllocationStack(info->allocStack);
 	}
 
 	if (p == NULL) {
