@@ -306,6 +306,7 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 	void *p;
 	double d;
 	const int precision = 6;
+	int maxsecwidth;
 
 	clock_gettime(CLOCK_REALTIME, &utc);
 	clock_gettime(CLOCK_MONOTONIC, &mono);
@@ -317,6 +318,14 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 		diff.tv_nsec = 1000000000 - (mono.tv_nsec - utc.tv_nsec);
 		diff.tv_sec = utc.tv_sec - mono.tv_sec -1;
 	}
+
+	maxsecwidth = 0;
+	while(mono.tv_sec > 0) {
+		mono.tv_sec = mono.tv_sec/10;
+		maxsecwidth++;
+	}
+	if (maxsecwidth == 0) maxsecwidth=1;
+
 	out << "# LeakTracer report";
 	d = diff.tv_sec + (((double)diff.tv_nsec)/1000000000);
 	out << " diff_utc_mono=" << std::fixed << std::left << std::setprecision(precision) << d ;
@@ -326,7 +335,7 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 	while (__allocations.getNextPair(&info, &p)) {
 		d = info->timestamp.tv_sec + (((double)info->timestamp.tv_nsec)/1000000000);
 		out << "leak, ";
-		out << "time="  << std::fixed << std::left << std::setprecision(precision) << d << ", "; // setw(16) ?
+		out << "time="  << std::fixed << std::right << std::setprecision(precision) << std::setfill('0') << std::setw(maxsecwidth+1+precision) << d << ", "; // setw(16) ?
 		out << "stack=";
 		for (unsigned int i = 0; i < ALLOCATION_STACK_DEPTH; i++) {
 			if (info->allocStack[i] == NULL) break;
