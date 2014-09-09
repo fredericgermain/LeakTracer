@@ -27,11 +27,12 @@
 #include <stdio.h>
 #include "LeakTracer_l.hpp"
 
-// glibc/eglibc: dlsym uses calloc internally now, so use weak symbol to get their symbol
+
 extern "C" void* __libc_malloc(size_t size) __attribute__((weak));
 extern "C" void  __libc_free(void* ptr) __attribute__((weak));
 extern "C" void* __libc_realloc(void *ptr, size_t size) __attribute__((weak));
 extern "C" void* __libc_calloc(size_t nmemb, size_t size) __attribute__((weak));
+
 
 namespace leaktracer {
 
@@ -42,10 +43,24 @@ typedef struct {
 } libc_alloc_func_t;
 
 static libc_alloc_func_t libc_alloc_funcs[] = {
+#ifdef OSX
+  { "calloc", NULL, (void**)(&lt_calloc) },
+  { "malloc", NULL, (void**)(&lt_malloc) },
+  { "realloc", NULL, (void**)(&lt_realloc) },
+  { "free", NULL, (void**)(&lt_free) },
+
+  { "malloc_zone_malloc", NULL, (void**)(&__malloc_zone_malloc) },
+  { "malloc_zone_free", NULL, (void**)(&__malloc_zone_free) },
+  { "malloc_zone_calloc", NULL, (void**)(&__malloc_zone_calloc) },
+  { "malloc_zone_valloc", NULL, (void**)(&__malloc_zone_valloc) },
+  { "malloc_zone_realloc", NULL, (void**)(&__malloc_zone_realloc) },
+  { "malloc_zone_memalign", NULL, (void**)(&__malloc_zone_memalign) },
+#else
   { "calloc", (void*)__libc_calloc, (void**)(&lt_calloc) },
   { "malloc", (void*)__libc_malloc, (void**)(&lt_malloc) },
   { "realloc", (void*)__libc_realloc, (void**)(&lt_realloc) },
-  { "free", (void*)__libc_free, (void**)(&lt_free) }
+  { "free", (void*)__libc_free, (void**)(&lt_free) },
+#endif
 };
 
 MemoryTrace *MemoryTrace::__instance = NULL;
@@ -118,6 +133,9 @@ MemoryTrace::init_no_alloc_allowed()
 			}
 		}
 	} 
+#ifdef OSX
+	__malloc_default_zone = malloc_default_zone();
+#endif
 
 	__instance = reinterpret_cast<MemoryTrace*>(&s_memoryTrace_instance);
 
@@ -284,9 +302,15 @@ void MemoryTrace::writeLeaksPrivate(std::ostream &out)
 	const int precision = 6;
 	int maxsecwidth;
 
+#if 0
 	clock_gettime(CLOCK_REALTIME, &utc);
 	clock_gettime(CLOCK_MONOTONIC, &mono);
-
+#else
+        utc.tv_sec = 0;
+        utc.tv_nsec = 0;
+        mono.tv_sec = 0;
+        mono.tv_nsec = 0;
+#endif
 	if (utc.tv_nsec > mono.tv_nsec) {
 		diff.tv_nsec = utc.tv_nsec - mono.tv_nsec;
 		diff.tv_sec = utc.tv_sec - mono.tv_sec;

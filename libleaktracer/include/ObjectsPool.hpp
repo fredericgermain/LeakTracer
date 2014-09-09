@@ -26,6 +26,11 @@
 #include "MutexLock.hpp"
 #include <cstdlib>
 
+#define OSX
+#ifdef OSX
+#include <malloc/malloc.h>
+#endif
+
 /**
  * dynamic call interfaces to memory allocation functions in libc.so
  */
@@ -33,6 +38,16 @@ extern void* (*lt_malloc)(size_t size);
 extern void  (*lt_free)(void* ptr);
 extern void* (*lt_realloc)(void *ptr, size_t size);
 extern void* (*lt_calloc)(size_t nmemb, size_t size);
+
+#ifdef OSX
+extern void* (*__malloc_zone_malloc)(malloc_zone_t *zone, size_t size);
+extern void  (*__malloc_zone_free)(malloc_zone_t *zone, void* ptr);
+extern void* (*__malloc_zone_calloc)(malloc_zone_t *zone, size_t num_items, size_t size);
+extern void* (*__malloc_zone_valloc)(malloc_zone_t *zone, size_t size);
+extern void* (*__malloc_zone_realloc)(malloc_zone_t *zone, void *ptr, size_t size);
+extern void* (*__malloc_zone_memalign)(malloc_zone_t *zone, size_t alignment, size_t size);
+extern malloc_zone_t *__malloc_default_zone;
+#endif
 
 /*
  * underlying allocation, de-allocation used within

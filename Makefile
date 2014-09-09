@@ -47,16 +47,18 @@ endif
 
 # some architecture generate a lot more instuction than on x86 (mips, arm...), this make the functions not inlined
 # make inline-limit big to force inline
-CXXFLAGS += -finline-limit=10000
+CXXFLAGS += -fno-inline-limit
 CPPFLAGS += -I$(LIBLEAKTRACERPATH)/include -I$(LIBLEAKTRACERPATH)/src
 # on some archi, __builtin_return_address with idx > 1 fails.
 # and on most intel platform, [e]glibc backtrace() function is more efficient and less
 # buggy, so -DUSE_BACKTRACE is becoming the default, as it is the most used target
 # uclibc target might need to turn this off...
 CPPFLAGS += -DUSE_BACKTRACE
-DYNLIB_FLAGS=-fpic -DSHARED -Wl,-z,defs
+DYNLIB_FLAGS=-fpic -DSHARED
+#DYNLIB_FLAGS+=-Wl,-z,defs
 # timestamp support
-LD_FLAGS=-lrt
+#LD_FLAGS=-lrt
+LD_FLAGS=-lsystem -L/usr/lib/system
 LD_FLAGS+=  -ldl -lpthread
 
 CXXFLAGS += $(EXTRA_CXXFLAGS)

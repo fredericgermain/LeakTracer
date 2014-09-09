@@ -412,7 +412,12 @@ inline void MemoryTrace::registerRelease(void *p, bool is_array)
 // storetimestamp function
 inline void MemoryTrace::storeTimestamp(struct timespec &timestamp)
 {
+# if 0
   clock_gettime(CLOCK_MONOTONIC, &timestamp);
+#else
+  timestamp.tv_sec = 0;
+  timestamp.tv_nsec = 0;
+#endif
 }
 
 
