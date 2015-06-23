@@ -17,6 +17,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdint.h>
 #include <string.h>
 #include <iostream>
 #include <list>
@@ -420,5 +421,3 @@ inline void MemoryTrace::storeTimestamp(struct timespec &timestamp)
 
 
 #endif  // include once
-
-
