@@ -189,7 +189,7 @@ private:
 		void * allocStack[ALLOCATION_STACK_DEPTH];
 		bool isArray;
 	} allocation_info_t;
-	inline void storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH]);
+	void storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH]);
 	inline void storeTimestamp(struct timespec &tm);
 
 	typedef TMapMemoryInfo<allocation_info_t> memory_allocations_info_t;
@@ -313,32 +313,32 @@ inline void MemoryTrace::stopAllMonitoring(void)
 
 // stores allocation stack, up to ALLOCATION_STACK_DEPTH
 // frames
-inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
-{
-	unsigned int iIndex = 0;
-#ifdef USE_BACKTRACE
-	void* arrtmp[ALLOCATION_STACK_DEPTH+1];
-	iIndex = backtrace(arrtmp, ALLOCATION_STACK_DEPTH + 1) - 1;
-	memcpy(arr, &arrtmp[1], iIndex*sizeof(void*));
-#else
-	void *pFrame;
-	// NOTE: we can't use "for" loop, __builtin_* functions
-	// require the number to be known at compile time
-	arr[iIndex++] = (                  (pFrame = __builtin_frame_address(0)) != NULL) ? __builtin_return_address(0) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(1)) != NULL) ? __builtin_return_address(1) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(2)) != NULL) ? __builtin_return_address(2) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(3)) != NULL) ? __builtin_return_address(3) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(4)) != NULL) ? __builtin_return_address(4) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(5)) != NULL) ? __builtin_return_address(5) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(6)) != NULL) ? __builtin_return_address(6) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(7)) != NULL) ? __builtin_return_address(7) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(8)) != NULL) ? __builtin_return_address(8) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
-	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(9)) != NULL) ? __builtin_return_address(9) : NULL;
-#endif
-	// fill remaining spaces
-	for (; iIndex < ALLOCATION_STACK_DEPTH; iIndex++)
-		arr[iIndex] = NULL;
-}
+//inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
+//{
+//	unsigned int iIndex = 0;
+//#ifdef USE_BACKTRACE
+//	void* arrtmp[ALLOCATION_STACK_DEPTH+1];
+//	iIndex = backtrace(arrtmp, ALLOCATION_STACK_DEPTH + 1) - 1;
+//	memcpy(arr, &arrtmp[1], iIndex*sizeof(void*));
+//#else
+//	void *pFrame;
+//	// NOTE: we can't use "for" loop, __builtin_* functions
+//	// require the number to be known at compile time
+//	arr[iIndex++] = (                  (pFrame = __builtin_frame_address(0)) != NULL) ? __builtin_return_address(0) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(1)) != NULL) ? __builtin_return_address(1) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(2)) != NULL) ? __builtin_return_address(2) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(3)) != NULL) ? __builtin_return_address(3) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(4)) != NULL) ? __builtin_return_address(4) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(5)) != NULL) ? __builtin_return_address(5) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(6)) != NULL) ? __builtin_return_address(6) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(7)) != NULL) ? __builtin_return_address(7) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(8)) != NULL) ? __builtin_return_address(8) : NULL; if (iIndex == ALLOCATION_STACK_DEPTH) return;
+//	arr[iIndex++] = (pFrame != NULL && (pFrame = __builtin_frame_address(9)) != NULL) ? __builtin_return_address(9) : NULL;
+//#endif
+//	// fill remaining spaces
+//	for (; iIndex < ALLOCATION_STACK_DEPTH; iIndex++)
+//		arr[iIndex] = NULL;
+//}
 
 
 // adds all relevant info regarding current allocation to map
