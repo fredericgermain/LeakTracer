@@ -44,6 +44,7 @@ public:
 	 *  elements */
 	void beginIteration(void);
 	bool getNextPair(T **ppObject, void **pptr);
+	bool empty(void);
 
 	void clearAllInfo(void);
 
@@ -210,6 +211,18 @@ bool TMapMemoryInfo<T>::getNextPair(T **ppObject, void **pptr)
 	// advise "current element" to be the next element in current list
 	__pIterationCurrentElement = __pIterationCurrentElement->next;
 
+	return true;
+}
+
+template <typename T>
+bool TMapMemoryInfo<T>::empty(void)
+{
+	for (long l = 0; l < NUMBER_OF_MEMORY_INFO_LISTS; l++) {
+		list_node_t * pNext = __info_lists[l];
+		if (pNext != NULL){
+			return false;
+		}
+	}
 	return true;
 }
 

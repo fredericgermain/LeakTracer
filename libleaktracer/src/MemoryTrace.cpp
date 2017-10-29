@@ -239,7 +239,12 @@ void MemoryTrace::MemoryTraceOnExit(void)
 		TRACE((stderr, "LeakTracer: writing leak report in %s\n", reportName));
 		leaktracer::MemoryTrace::GetInstance().writeLeaksToFile(reportName);
 	}
-
+	
+	const char *exitCode = getenv("LEAKTRACER_EXIT_CODE_ON_LEAKS");
+	if (exitCode != NULL && !leaktracer::MemoryTrace::GetInstance().__allocations.empty())
+	{
+		exit(atoi(exitCode));
+	}
 }
 
 MemoryTrace::~MemoryTrace(void)
