@@ -19,6 +19,7 @@ else
 ifeq ($(CXX),)
 CXX ?= g++
 endif
+LIBDIR := $(shell echo -n lib; (ldd /usr/bin/ls |grep -q lib64) && echo -n 64)
 endif
 SRCDIR ?= $(CURDIR)
 OBJDIR ?= $(CURDIR)/build/$(shell $(CXX) -dumpmachine)/$(shell $(CXX) -dumpversion)
@@ -148,11 +149,11 @@ clean:
 
 install:
 	install -d $(DESTDIR)$(PREFIX)/include
-	install -d $(DESTDIR)$(PREFIX)/lib
+	install -d $(DESTDIR)$(PREFIX)/$(LIBDIR)
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -d $(DESTDIR)$(PREFIX)/share/doc/leaktracer
 	install -m 664 $(LIBLEAKTRACERPATH)/include/* $(DESTDIR)$(PREFIX)/include
-	install -m 775 $(LTLIBSO) $(DESTDIR)$(PREFIX)/lib
+	install -m 775 $(LTLIBSO) $(DESTDIR)$(PREFIX)/$(LIBDIR)
 	install -m 775 helpers/* $(DESTDIR)$(PREFIX)/bin
-	install -m 664 $(LTLIB) $(DESTDIR)$(PREFIX)/lib
+	install -m 664 $(LTLIB) $(DESTDIR)$(PREFIX)/$(LIBDIR)
 	install -m 664 README $(DESTDIR)$(PREFIX)/share/doc/leaktracer
