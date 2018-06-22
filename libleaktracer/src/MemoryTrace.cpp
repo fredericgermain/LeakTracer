@@ -35,7 +35,9 @@ extern "C" void  __libc_free(void* ptr) __attribute__((weak));
 extern "C" void* __libc_realloc(void *ptr, size_t size) __attribute__((weak));
 extern "C" void* __libc_calloc(size_t nmemb, size_t size) __attribute__((weak));
 
+#ifdef __ANDROID__
 static Dl_info s_P2pSODlInfo;
+#endif
 
 namespace leaktracer {
 
@@ -118,12 +120,18 @@ MemoryTrace::init_no_alloc_allowed()
 			if (curfunc->libcsymbol) {
 				*curfunc->localredirect = curfunc->libcsymbol;
 			} else {
+#ifndef __ANDROID__
+				*curfunc->localredirect = dlsym(RTLD_NEXT, curfunc->symbname);
+#else
 				*curfunc->localredirect = dlsym(RTLD_DEFAULT, curfunc->symbname);
+#endif
 			}
 		}
 	} 
 
+#ifdef __ANDROID__
  	dladdr((const void*)init_no_alloc_allowed, &s_P2pSODlInfo);
+#endif
 
 	__instance = reinterpret_cast<MemoryTrace*>(&s_memoryTrace_instance);
 
@@ -284,6 +292,7 @@ void MemoryTrace::removeThreadOptions(ThreadMonitoringOptions *pOptions)
 	}
 }
 
+#ifdef __ANDROID__
 struct TraceHandle {
     void **backtrace;
     int pos;
@@ -315,6 +324,7 @@ void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
     for (iIndex = traceHandle.pos; iIndex < ALLOCATION_STACK_DEPTH; iIndex++)
         arr[iIndex] = NULL;
 }
+#endif
 
 // writes all memory leaks to given stream
 void MemoryTrace::writeLeaksPrivate(std::ostream &out)
