@@ -190,7 +190,11 @@ private:
 		void * allocStack[ALLOCATION_STACK_DEPTH];
 		bool isArray;
 	} allocation_info_t;
+#ifndef __ANDROID__
 	inline void storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH]);
+#else
+	void storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH]);
+#endif
 	inline void storeTimestamp(struct timespec &tm);
 
 	typedef TMapMemoryInfo<allocation_info_t> memory_allocations_info_t;
@@ -312,6 +316,7 @@ inline void MemoryTrace::stopAllMonitoring(void)
 }
 
 
+#ifndef __ANDROID__
 // stores allocation stack, up to ALLOCATION_STACK_DEPTH
 // frames
 inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
@@ -340,6 +345,7 @@ inline void MemoryTrace::storeAllocationStack(void* arr[ALLOCATION_STACK_DEPTH])
 	for (; iIndex < ALLOCATION_STACK_DEPTH; iIndex++)
 		arr[iIndex] = NULL;
 }
+#endif
 
 
 // adds all relevant info regarding current allocation to map
