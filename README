@@ -29,6 +29,13 @@ Installation
 See the file 'INSTALL'
 
 
+Android/NDK (In CMakeLists.txt) :
+    include_directories(/Path/To/libleaktracer/include)
+    file(GLOB_RECURSE leak_tracer "/Path/To/libleaktracer/src/*")
+    add_library( leaktracer STATIC ${leak_tracer} )
+    target_link_libraries( leaktracer )
+
+
 Usage
 =====
 
