@@ -82,4 +82,4 @@ fi
 
 # run the program
 export LD_PRELOAD="$LEAKTRACER_SHARED_LIB"
-exec $@
+exec "$@"
