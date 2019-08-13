@@ -19,7 +19,7 @@ else
 ifeq ($(CXX),)
 CXX ?= g++
 endif
-LIBDIR := $(shell echo -n lib; (ldd /usr/bin/ls |grep -q lib64) && echo -n 64)
+LIBDIR := $(shell echo -n lib; (`which ls` | grep -q lib64) && echo -n 64)
 endif
 SRCDIR ?= $(CURDIR)
 OBJDIR ?= $(CURDIR)/build/$(shell $(CXX) -dumpmachine)/$(shell $(CXX) -dumpversion)
